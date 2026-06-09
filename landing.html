@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Frecuencia Mahatma 441 — Transformación Cuántica</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { 
+  font-family: 'Montserrat', sans-serif; 
+  color: #333; 
+  background: #fafaf8;
+}
+
+/* Fondo igual a plataforma */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  filter: saturate(0.85);
+  pointer-events: none;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(47,165,115,0.06), transparent 50%),
+    linear-gradient(180deg, rgba(250,250,248,0.65) 0%, rgba(250,250,248,0.92) 60%, rgba(250,250,248,0.96) 100%);
+  pointer-events: none;
+}
+
+/* Header */
+header {
+  background: rgba(250, 250, 248, 0.78);
+  backdrop-filter: blur(14px) saturate(1.1);
+  padding: 20px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 1px solid rgba(192, 192, 192, 0.35);
+}
+
+.logo {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  color: #2FA573;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.header-nav {
+  display: flex;
+  gap: 30px;
+  align-items: center;
+}
+
+.header-nav a {
+  color: #333;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: color 0.3s;
+  cursor: pointer;
+}
+
+.header-nav a:hover { color: #2FA573; }
+
+.btn-ingresar {
+  background: #2FA573;
+  color: white;
+  padding: 10px 24px;
+  border-radius: 6px;
+  border: none;
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.3s;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.btn-ingresar:hover { background: #258a5f; }
+
+/* Hero */
+.hero {
+  color: #333;
+  padding: 100px 40px;
+  text-align: center;
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+  max-width: 800px;
+}
+
+.hero h1 {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 48px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.hero-subtitle {
+  font-size: 16px;
+  color: #666;
+  margin-bottom: 40px;
+  line-height: 1.6;
+}
+
+.btn-cta {
+  background: #2FA573;
+  color: white;
+  padding: 14px 32px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.3s;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.btn-cta:hover { background: #258a5f; }
+
+/* Testimonios */
+.testimonios-section {
+  padding: 80px 40px;
+  position: relative;
+  background: linear-gradient(135deg, rgba(47,165,115,0.08) 0%, rgba(47,165,115,0.04) 100%);
+}
+
+.testimonios-section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: 
+    radial-gradient(circle at 20% 50%, rgba(47,165,115,0.15) 0%, transparent 30%),
+    radial-gradient(circle at 80% 80%, rgba(212,175,55,0.08) 0%, transparent 40%);
+  pointer-events: none;
+}
+
+.section-header {
+  text-align: center;
+  margin-bottom: 60px;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #D4AF37;
+  margin-bottom: 16px;
+}
+
+.section-label::before,
+.section-label::after {
+  content: '';
+  display: inline-block;
+  width: 20px;
+  height: 1px;
+  background: #D4AF37;
+}
+
+.section-header h2 {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 42px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #333;
+}
+
+.section-header p {
+  font-size: 15px;
+  color: #666;
+  line-height: 1.7;
+}
+
+.testimonios-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  max-width: 1400px;
+  margin: 0 auto 50px;
+  padding: 0 20px;
+}
+
+.testimonio-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  border: 1px solid #e8e8e8;
+  transition: all 0.3s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 240px;
+}
+
+.testimonio-card:hover {
+  box-shadow: 0 8px 20px rgba(47,165,115,0.15);
+  transform: translateY(-4px);
+}
+
+.testimonio-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.testimonio-nombre {
+  font-weight: 600;
+  font-size: 16px;
+  color: #333;
+}
+
+.testimonio-stars {
+  color: #D4AF37;
+  font-size: 16px;
+}
+
+.testimonio-mensaje {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #666;
+  font-style: italic;
+  margin-bottom: 16px;
+}
+
+.btn-video {
+  background: #2FA573;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.3s;
+  width: 100%;
+}
+
+.btn-video:hover { background: #258a5f; }
+
+/* Modal */
+.modal-back {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.8);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(4px);
+}
+
+.modal {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  max-width: 600px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+
+.modal-head {
+  padding: 20px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-head h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #999;
+}
+
+.modal-video {
+  position: relative;
+  padding-bottom: 100%;
+  height: 0;
+  overflow: hidden;
+  background: #000;
+}
+
+.modal-video iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.modal-body p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #666;
+}
+
+/* Sobre */
+.sobre-section {
+  padding: 80px 40px;
+  text-align: center;
+}
+
+.sobre-content {
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.sobre-content h2 {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 36px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.sobre-content p {
+  font-size: 15px;
+  line-height: 1.8;
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.btn-sitio {
+  background: #2FA573;
+  color: white;
+  padding: 14px 32px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.3s;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-sitio:hover { background: #258a5f; }
+
+/* Footer */
+footer {
+  background: rgba(7, 21, 16, 0.95);
+  color: rgba(255,255,255,0.6);
+  padding: 40px;
+  text-align: center;
+  font-size: 12px;
+  border-top: 1px solid rgba(212,175,55,0.2);
+}
+
+footer a {
+  color: #D4AF37;
+  text-decoration: none;
+}
+
+footer a:hover { text-decoration: underline; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  header {
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .header-nav {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .hero {
+    padding: 50px 20px;
+  }
+  
+  .hero h1 {
+    font-size: 32px;
+  }
+  
+  .testimonios-section,
+  .sobre-section {
+    padding: 50px 20px;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="logo">Frecuencia Mahatma 441</div>
+  <nav class="header-nav">
+    <a href="#testimonios">Testimonios</a>
+    <a href="#sobre">Sobre Claudio</a>
+    <button class="btn-ingresar" onclick="window.location.href = 'plataforma.html';">Ingresar a Plataforma</button>
+  </nav>
+</header>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-content">
+    <h1>Transformación Cuántica</h1>
+    <p class="hero-subtitle">
+      Frecuencia Mahatma 441 es un camino de activación, sanación y reprogramación cuántica que te reconecta con tu verdadera esencia y tu misión de alma.
+    </p>
+    <button class="btn-cta" onclick="document.getElementById('testimonios').scrollIntoView({ behavior: 'smooth' });">Ver Testimonios</button>
+  </div>
+</section>
+
+<!-- Testimonios -->
+<section class="testimonios-section" id="testimonios">
+  <div class="section-header">
+    <div class="section-label">Testimonios</div>
+    <h2>Experiencias de Transformación</h2>
+    <p>Mira cómo la Frecuencia Mahatma 441 ha impactado la vida de nuestros participantes</p>
+  </div>
+
+  <div class="testimonios-grid" id="testimonios-container">
+    <!-- Los testimonios se cargarán aquí desde localStorage -->
+  </div>
+</section>
+
+<!-- Sobre Claudio -->
+<section class="sobre-section" id="sobre">
+  <div class="sobre-content">
+    <h2>Claudio Fabián Martínez Lorenzo</h2>
+    <p>
+      <strong>Terapeuta Cuántico</strong> especializado en desprogramación multidimensional, activación del ADN y reprogramación de creencias limitantes.
+    </p>
+    <p>
+      A través de la Frecuencia Mahatma 441, guío a las personas en su camino de transformación cuántica, reconexión con su esencia y alineación con su verdadera misión de alma.
+    </p>
+    <p>
+      Descubre más sobre mi trabajo, servicios y oferta terapéutica:
+    </p>
+    <a href="https://claudio-martinez-terapeuta.vercel.app/" target="_blank" class="btn-sitio">Visitar mi sitio web</a>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <p>© 2026 Frecuencia Mahatma 441 — Transformación Cuántica | Todos los derechos reservados</p>
+  <p style="margin-top: 12px;">
+    <a href="mailto:esenios2022@gmail.com">esenios2022@gmail.com</a> · 
+    <a href="https://wa.me/59893422022">WhatsApp +598 93422022</a>
+  </p>
+</footer>
+
+<!-- Modal para videos -->
+<div id="modal" class="modal-back" style="display: none;" onclick="this.style.display='none';">
+  <div class="modal" onclick="event.stopPropagation();">
+    <div class="modal-head">
+      <h3 id="modal-nombre"></h3>
+      <button class="modal-close" onclick="document.getElementById('modal').style.display='none';">×</button>
+    </div>
+    <div class="modal-video" id="modal-video"></div>
+    <div class="modal-body">
+      <p id="modal-mensaje"></p>
+    </div>
+  </div>
+</div>
+
+<script src="supabase-config.js"></script>
+<script>
+// Cargar testimonios desde Supabase
+async function cargarTestimonios() {
+  const container = document.getElementById('testimonios-container');
+  
+  try {
+    const testimonios = await supabaseClient.getTestimonios();
+    
+    if (testimonios.length === 0) {
+      container.innerHTML = '<p style="text-align: center; color: #999; grid-column: 1/-1;">No hay testimonios aún</p>';
+      return;
+    }
+    
+    container.innerHTML = testimonios.map((t) => `
+      <div class="testimonio-card">
+        <div class="testimonio-header">
+          <div class="testimonio-nombre">${t.nombre}</div>
+          <div class="testimonio-stars">★★★★★</div>
+        </div>
+        <p class="testimonio-mensaje">"${t.mensaje}"</p>
+        ${t.video_url ? `<button class="btn-video" onclick="abrirVideo('${t.id}', '${t.nombre}', '${t.video_url}', '${t.mensaje}')">▶ Ver video</button>` : ''}
+      </div>
+    `).join('');
+  } catch (error) {
+    console.error('Error cargando testimonios:', error);
+    container.innerHTML = '<p style="text-align: center; color: #999; grid-column: 1/-1;">Error cargando testimonios</p>';
+  }
+}
+
+function abrirVideo(id, nombre, video_url, mensaje) {
+  const videoId = video_url.match(/\/d\/([a-zA-Z0-9_-]+)/)?.[1];
+  if (!videoId) {
+    alert('Link de video no válido');
+    return;
+  }
+  
+  document.getElementById('modal-nombre').textContent = nombre;
+  document.getElementById('modal-mensaje').textContent = mensaje;
+  document.getElementById('modal-video').innerHTML = `<iframe src="https://drive.google.com/file/d/${videoId}/preview" allow="autoplay"></iframe>`;
+  document.getElementById('modal').style.display = 'flex';
+}
+
+// Cargar cuando se abre la página
+cargarTestimonios();
+
+// Recargar cada 5 segundos para ver cambios en tiempo real
+setInterval(cargarTestimonios, 5000);
+</script>
+
+</body>
+</html>
