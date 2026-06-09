@@ -51,6 +51,37 @@ async function trackPreviewEvent(linkId, type) {
   } catch (e) { console.warn("Preview tracking:", e.message); }
 }
 
+// =============================================================================
+// 📊 GUARDAR ACCESO A AULAS EN SUPABASE
+// =============================================================================
+async function guardarAccesoAula(aulaNum, aulaNombre, aulaTipo) {
+  try {
+    if (!window.supabaseClient) {
+      console.warn("Supabase no está disponible aún");
+      return;
+    }
+    
+    const ahora = new Date().toISOString();
+    const acceso = {
+      aula_num: aulaNum,
+      aula_nombre: aulaNombre,
+      aula_tipo: aulaTipo,
+      acceso_en: ahora,
+      fecha: new Date().toLocaleDateString("es-AR"),
+      hora: new Date().toLocaleTimeString("es-AR")
+    };
+    
+    const response = await window.supabaseClient.request("POST", "/accesos_aulas", acceso);
+    console.log("✓ Acceso guardado en Supabase:", acceso);
+    return response;
+  } catch (e) {
+    console.warn("⚠ No se pudo guardar el acceso:", e.message);
+  }
+}
+
+// Exponer función globalmente para que components-3.jsx pueda llamarla
+window.guardarAccesoAula = guardarAccesoAula;
+
 // Banner de cuenta regresiva durante preview
 function PreviewBanner({ expiresAt, linkId, onExpire }) {
   const [segsRestantes, setSegsRestantes] = useSA(() => Math.max(0, Math.floor((expiresAt - Date.now()) / 1000)));
@@ -704,39 +735,3 @@ function Root() {
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(<Root />);
-
-
-// TRACKING DE ACCESO A AULAS EN SUPABASE
-window.guardarAccesoAula = async function(aulaId, aulaNombre, aulaTipo) {
-    try {
-          const SUPABASE_URL = 'https://udtenqjlofjduuwffjja.supabase.co';
-          const SUPABASE_KEY = 'sb_publishable_JpIAa1iXYAyOVMLBlpBp6w_D8BaSKer';
-
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/aulas`, {
-              method: 'POST',
-              headers: {
-                        'Content-Type': 'application/json',
-                        'apikey': SUPABASE_KEY,
-                        'Authorization': `Bearer ${SUPABASE_KEY}`
-              },
-              body: JSON.stringify({
-                        aula_id: aulaId,
-                        aula_nombre: aulaNombre,
-                        aula_tipo: aulaTipo,
-                        accedida_en: new Date().toISOString(),
-                        user_agent: navigator.userAgent
-              })
-      });
-
-      if (response.ok) {
-              console.log('Acceso a aula guardado:', { aulaId, aulaNombre });
-              return true;
-      } else {
-              console.error('Error guardando en Supabase:', response.status);
-              return false;
-      }
-    } catch (e) {
-          console.error('Error en guardarAccesoAula:', e.message);
-          return false;
-    }
-};

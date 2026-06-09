@@ -1,0 +1,245 @@
+/* =========================================================================
+   RESUMEN IA — sección dentro del modal de aula
+   ========================================================================= */
+.fm-resumen-ia {
+  margin: 24px 0 0;
+  padding: 24px;
+  background: linear-gradient(180deg, rgba(47, 165, 115, 0.04), rgba(212, 175, 55, 0.06));
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 14px;
+}
+.fm-resumen-head { margin-bottom: 18px; }
+.fm-resumen-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--fm-mono-font);
+  font-size: 11px;
+  letter-spacing: 0.25em;
+  color: var(--fm-primary-dark);
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.fm-resumen-pitch {
+  font-size: 14px;
+  color: var(--fm-text-mid);
+  line-height: 1.6;
+  margin: 0 0 18px;
+  text-wrap: pretty;
+}
+.fm-resumen-pitch strong { color: var(--fm-primary-dark); }
+
+.fm-resumen-warning {
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  background: rgba(243, 156, 18, 0.12);
+  border-left: 3px solid #f39c12;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #7a5408;
+}
+.fm-resumen-warning strong { color: #5a3d04; }
+.fm-resumen-warning em { color: #5a3d04; font-style: italic; }
+
+.fm-resumen-trust {
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  background: rgba(47, 165, 115, 0.08);
+  border-left: 3px solid var(--fm-primary);
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--fm-primary-dark);
+}
+
+.fm-textarea-lg {
+  min-height: 200px;
+  font-family: var(--fm-mono-font);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.fm-resumen-loading {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  background: white;
+  border-radius: 10px;
+  border: 1px solid rgba(212, 175, 55, 0.25);
+}
+.fm-resumen-loading strong {
+  font-family: var(--fm-display-font);
+  font-style: italic;
+  font-size: 17px;
+  color: var(--fm-primary-dark);
+  font-weight: 500;
+  display: block;
+}
+.fm-resumen-loading-sub {
+  font-size: 12px;
+  color: var(--fm-text-dim);
+  margin-top: 4px;
+  font-family: var(--fm-mono-font);
+  letter-spacing: 0.05em;
+}
+
+.fm-resumen-content {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  border: 1px solid rgba(192, 192, 192, 0.35);
+  animation: fm-fade-up 0.4s ease;
+}
+.fm-resumen-intro {
+  font-family: var(--fm-display-font);
+  font-style: italic;
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--fm-primary-dark);
+  margin: 0 0 24px;
+  padding: 0 0 0 18px;
+  border-left: 3px solid var(--fm-gold);
+}
+.fm-resumen-h {
+  font-family: var(--fm-mono-font);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--fm-gold);
+  font-weight: 700;
+  margin: 22px 0 12px;
+}
+
+.fm-resumen-secciones {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  counter-reset: sec;
+}
+.fm-resumen-secciones li {
+  counter-increment: sec;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+  position: relative;
+  padding-left: 38px;
+}
+.fm-resumen-secciones li:last-child { border-bottom: 0; }
+.fm-resumen-secciones li::before {
+  content: counter(sec, decimal-leading-zero);
+  position: absolute;
+  left: 0;
+  top: 14px;
+  font-family: var(--fm-mono-font);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--fm-gold);
+  letter-spacing: -0.02em;
+}
+.fm-resumen-sec-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.fm-resumen-min {
+  font-family: var(--fm-mono-font);
+  font-size: 11px;
+  color: var(--fm-text-dim);
+  background: rgba(0, 0, 0, 0.04);
+  padding: 2px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+}
+.fm-resumen-tema {
+  font-family: var(--fm-ui-font);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--fm-text);
+}
+.fm-resumen-cont {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--fm-text-mid);
+  text-wrap: pretty;
+}
+
+.fm-resumen-comandos {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.fm-resumen-comandos li {
+  padding: 10px 14px;
+  background: rgba(47, 165, 115, 0.05);
+  border-left: 3px solid var(--fm-primary);
+  border-radius: 4px;
+  font-family: var(--fm-display-font);
+  font-style: italic;
+  font-size: 15px;
+  color: var(--fm-primary-dark);
+  line-height: 1.5;
+}
+
+.fm-resumen-para {
+  margin: 24px 0 0;
+  padding: 14px 16px;
+  background: rgba(212, 175, 55, 0.08);
+  border-radius: 8px;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.fm-resumen-para-label {
+  font-family: var(--fm-mono-font);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--fm-gold);
+  flex-shrink: 0;
+}
+.fm-resumen-para-text {
+  font-size: 14px;
+  color: var(--fm-text);
+  line-height: 1.5;
+}
+
+.fm-resumen-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+/* Mobile */
+@media (max-width: 700px) {
+  .fm-resumen-ia { padding: 18px; margin-top: 16px; }
+  .fm-resumen-content { padding: 18px; }
+  .fm-resumen-intro { font-size: 15px; padding-left: 14px; }
+  .fm-resumen-secciones li { padding-left: 32px; }
+  .fm-resumen-tema { font-size: 14px; }
+  .fm-resumen-cont { font-size: 13px; }
+  .fm-resumen-actions .fm-btn { width: 100%; }
+}
+
+
+/* ===== Audio del aula + Informe estático (modal) ===== */
+.fm-audio{background:rgba(255,255,255,0.04);border:1px solid rgba(212,175,55,0.2);border-radius:12px;padding:14px 16px;margin-bottom:16px;}
+.fm-audio-name{font-size:13px;color:rgba(255,255,255,0.72);margin-bottom:8px;font-weight:500;}
+.fm-audio audio{width:100%;}
+.fm-informe-ficha{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:12px;overflow:hidden;margin:8px 0 16px;}
+.fm-informe-row{display:flex;justify-content:space-between;gap:16px;align-items:center;padding:11px 16px;border-bottom:1px solid rgba(255,255,255,0.06);}
+.fm-informe-row:last-child{border-bottom:none;}
+.fm-informe-row span{color:rgba(255,255,255,0.45);text-transform:uppercase;font-size:11px;letter-spacing:0.08em;}
+.fm-informe-row strong{color:#fff;font-weight:500;text-align:right;font-size:14px;}
+.fm-informe-desc{color:rgba(255,255,255,0.72);font-size:14px;line-height:1.7;margin:0 0 8px;}

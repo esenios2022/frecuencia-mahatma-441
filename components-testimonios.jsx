@@ -1,298 +1,1394 @@
 /* eslint-disable */
-const { useState: useSTes, useEffect: useETes, useRef: useRTes } = React;
+const { useState: useS4, useEffect: useE4, useMemo: useM4, useRef: useR4 } = React;
 
 // =============================================================================
-// MODAL PARA VER VIDEOS DE GOOGLE DRIVE
+// HELPERS de archivos — audio + descarga de materiales (local o link)
 // =============================================================================
-function ModalVideoTestimonio({ testimonio, onClose }) {
-  const videoId = testimonio.video_url?.match(/\/d\/([a-zA-Z0-9_-]+)/)?.[1];
-  
+// Reproductor de audio: resuelve el src desde FMFiles (archivo local) o una URL
+function FMAudio({ fileId, url, name }) {
+  const [src, setSrc] = useS4(url || null);
+  useE4(() => {
+    let alive = true;
+    if (!url && fileId && window.FMFiles) {
+      window.FMFiles.url(fileId).then((u) => { if (alive) setSrc(u); });
+    }
+    return () => { alive = false; };
+  }, [fileId, url]);
+  if (!src) return null;
   return (
-    <div style={{
-      position: "fixed",
-      inset: 0,
-      background: "rgba(0,0,0,0.8)",
-      zIndex: 9999,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: "20px",
-      backdropFilter: "blur(4px)"
-    }} onClick={onClose}>
-      <div style={{
-        background: "white",
-        borderRadius: "16px",
-        overflow: "hidden",
-        maxWidth: "600px",
-        width: "100%",
-        boxShadow: "0 20px 60px rgba(0,0,0,0.3)"
-      }} onClick={(e) => e.stopPropagation()}>
-        {/* Encabezado */}
-        <div style={{
-          padding: "20px",
-          borderBottom: "1px solid #eee",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center"
-        }}>
-          <h3 style={{ margin: 0, fontSize: "18px", fontWeight: 600, color: "#333" }}>
-            {testimonio.nombre}
-          </h3>
-          <button onClick={onClose} style={{
-            background: "none",
-            border: "none",
-            fontSize: "24px",
-            cursor: "pointer",
-            color: "#999"
-          }}>✕</button>
+    <div className="fm-audio">
+      <div className="fm-audio-name">🎵 {name || "Audio del aula"}</div>
+      <audio controls preload="none" src={src} style={{ width: "100%" }} />
+    </div>);
+
+}
+
+// Descarga un material: archivo guardado localmente o un link externo
+function descargarMaterial(m) {
+  if (m.fuente === "local" && m.fileId && window.FMFiles) {
+    window.FMFiles.download(m.fileId, m.nombre);
+  } else if (m.url) {
+    const dlUrl = window.fmDriveDownload ? window.fmDriveDownload(m.url) : m.url;
+    const a = document.createElement("a");
+    a.href = dlUrl;
+    a.download = m.nombre || "archivo";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  } else {
+    alert("Este material todavía no tiene archivo ni link cargado.");
+  }
+}
+
+// Detecta el tipo de material a partir del archivo subido
+function guessTipoMaterial(file) {
+  const n = (file.name || "").toLowerCase();
+  const t = file.type || "";
+  if (t.startsWith("audio") || /\.(mp3|m4a|wav|ogg|aac|flac)$/.test(n)) return "audio";
+  if (t.startsWith("video") || /\.(mp4|mov|webm|mkv)$/.test(n)) return "video";
+  if (t.startsWith("image") || /\.(jpe?g|png|webp|gif|svg)$/.test(n)) return "imagen";
+  if (/\.(ppt|pptx|key|odp)$/.test(n)) return "presentacion";
+  if (/\.pdf$/.test(n)) return "pdf";
+  return "otro";
+}
+
+// =============================================================================
+// MODAL DE AULA — visor Vimeo + ficha completa + Materiales + Resumen IA
+// =============================================================================
+function AulaModal({ aula, onClose }) {
+  const [tab, setTab] = useS4("info"); // "info" | "materiales" | "resumen"
+
+  useE4(() => {
+    const onKey = (e) => {if (e.key === "Escape") onClose();};
+    window.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {window.removeEventListener("keydown", onKey);document.body.style.overflow = "";};
+  }, []);
+
+  if (!aula) return null;
+  const tipo = window.TIPOS[aula.tipo];
+  const embed = window.getVimeoEmbed?.(aula.vimeo);
+  const materiales = aula.materiales || [];
+  const tieneAudio = !!(aula.audioFileId || aula.audioUrl);
+  const totalMats = materiales.length + (tieneAudio ? 1 : 0);
+
+  return (
+    <div className="fm-modal-back" onClick={onClose} style={{ fontFamily: "\"Times New Roman\"" }}>
+      <div className="fm-modal" onClick={(e) => e.stopPropagation()}>
+        <button className="fm-modal-close" onClick={onClose} aria-label="Cerrar">×</button>
+
+        <div className="fm-modal-video">
+          {embed ?
+          <iframe
+            src={embed}
+            frameBorder="0"
+            allow="autoplay; fullscreen; picture-in-picture"
+            allowFullScreen
+            title={aula.nombre}>
+          </iframe> :
+
+          <div className="fm-modal-novideo">
+              <FlorDeLaVida size={120} stroke="#D4AF37" strokeWidth={0.7} opacity={0.5} />
+              <div>
+                <h4>Video aún no cargado</h4>
+                <p>Esta aula no tiene link de Vimeo configurado. Cargalo desde el panel <strong>Admin</strong>.</p>
+                <button className="fm-btn fm-btn-secondary fm-btn-sm" onClick={() => {onClose();window.openAdmin?.(aula.n);}}>
+                  Abrir editor de esta aula
+                </button>
+              </div>
+            </div>
+          }
         </div>
 
-        {/* Video */}
-        <div style={{
-          position: "relative",
-          paddingBottom: "100%",
-          height: 0,
-          overflow: "hidden",
-          background: "#000"
-        }}>
-          {videoId ? (
-            <iframe
-              src={`https://drive.google.com/file/d/${videoId}/preview`}
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                width: "100%",
-                height: "100%",
-                border: "none"
-              }}
-              allow="autoplay"
-            ></iframe>
-          ) : (
-            <div style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: "#f5f5f5",
-              color: "#999",
-              fontSize: "14px"
-            }}>
-              Video no disponible aún
+        {/* TABS */}
+        <div className="fm-modal-tabs">
+          <button className={`fm-modal-tab ${tab === "info" ? "active" : ""}`} onClick={() => setTab("info")}>
+            Información
+          </button>
+          <button className={`fm-modal-tab ${tab === "materiales" ? "active" : ""}`} onClick={() => setTab("materiales")}>
+            Materiales {totalMats > 0 && <span className="fm-modal-tab-badge">{totalMats}</span>}
+          </button>
+          <button className={`fm-modal-tab ${tab === "resumen" ? "active" : ""}`} onClick={() => setTab("resumen")}>
+            Informe
+          </button>
+        </div>
+
+        <div className="fm-modal-info">
+          {tab === "info" && (
+            <>
+              <div className="fm-modal-meta">
+                <span className="fm-modal-num">{String(aula.n).padStart(2, "0")}</span>
+                <div className="fm-modal-tags">
+                  <span className="fm-tag fm-tag-emerald">{tipo.label}</span>
+                  {aula.dur && <span className="fm-tag fm-tag-mono">{aula.dur} min</span>}
+                  <span className="fm-tag fm-tag-gold">FM 441</span>
+                </div>
+              </div>
+              <h2 className="fm-modal-title" style={{ fontFamily: "\"Times New Roman\"", fontWeight: "500", textAlign: "center" }}>{aula.nombre}</h2>
+              {aula.desc && <p className="fm-modal-desc">{aula.desc}</p>}
+              {aula.tags &&
+              <div className="fm-modal-tag-row">
+                  {aula.tags.map((t) => <span key={t} className="fm-card-tag">#{t}</span>)}
+                </div>
+              }
+            </>
+          )}
+
+          {tab === "materiales" && (
+            <div className="fm-materiales">
+              {tieneAudio && (
+                <FMAudio fileId={aula.audioFileId} url={aula.audioUrl} name={aula.audioName || "Audio del aula"} />
+              )}
+              {materiales.length === 0 && !tieneAudio && (
+                <div className="fm-materiales-empty">
+                  <FlorDeLaVida size={48} stroke="#D4AF37" strokeWidth={0.8} opacity={0.4} />
+                  <p>Esta aula no tiene materiales descargables todavía.</p>
+                  <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>Podés agregar PDFs, documentos, audios e imágenes desde el panel Admin.</p>
+                </div>
+              )}
+              {materiales.length > 0 && (
+                <ul className="fm-material-list">
+                  {materiales.map((m, i) => (
+                    <li key={i} className="fm-material-item">
+                      <div className="fm-material-icon">{getMaterialIcon(m.tipo)}</div>
+                      <div className="fm-material-body">
+                        <span className="fm-material-nombre">{m.nombre}</span>
+                        {m.desc && <span className="fm-material-desc">{m.desc}</span>}
+                        {m.fuente === "local" && m.size != null && (
+                          <span className="fm-material-desc">{window.FMFiles?.human(m.size)} · archivo guardado</span>
+                        )}
+                      </div>
+                      <div className="fm-material-actions">
+                        {(m.url || ["pdf", "imagen", "audio", "video"].includes(m.tipo)) && (
+                          <button
+                            className="fm-btn fm-btn-ghost fm-btn-sm"
+                            onClick={() => window.fmVerMaterial?.(m)}>
+                            Ver
+                          </button>
+                        )}
+                        <button
+                          className="fm-btn fm-btn-secondary fm-btn-sm"
+                          onClick={() => descargarMaterial(m)}>
+                          ↓ Descargar
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
+          {tab === "resumen" && (
+            <InformeAula aula={aula} />
+          )}
+
+          {tab === "info" && (
+            <div className="fm-modal-actions">
+              <button className="fm-btn fm-btn-ghost" onClick={() => {onClose();window.openAdmin?.(aula.n);}}>
+                Editar metadata
+              </button>
             </div>
           )}
         </div>
-
-        {/* Mensaje */}
-        <div style={{ padding: "20px" }}>
-          <p style={{
-            margin: 0,
-            fontSize: "14px",
-            lineHeight: "1.6",
-            color: "#666"
-          }}>
-            {testimonio.mensaje}
-          </p>
-        </div>
       </div>
-    </div>
-  );
+    </div>);
+}
+
+function getMaterialIcon(tipo) {
+  switch (tipo) {
+    case "pdf": return "📄";
+    case "imagen": return "🖼️";
+    case "presentacion": return "📊";
+    case "audio": return "🎵";
+    case "video": return "🎬";
+    default: return "📎";
+  }
 }
 
 // =============================================================================
-// TARJETA DE TESTIMONIO
+// INFORME DEL AULA — ficha estática descargable en PDF (sin IA)
 // =============================================================================
-function TarjetaTestimonio({ testimonio, onVerVideo }) {
+function InformeAula({ aula }) {
+  const tipo = window.TIPOS[aula.tipo];
   return (
-    <div style={{
-      background: "white",
-      borderRadius: "12px",
-      padding: "20px",
-      boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-      border: "1px solid #e8e8e8",
-      transition: "all 0.3s ease"
-    }} onMouseEnter={(e) => {
-      e.currentTarget.style.boxShadow = "0 8px 20px rgba(47,165,115,0.15)";
-      e.currentTarget.style.transform = "translateY(-2px)";
-    }} onMouseLeave={(e) => {
-      e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.08)";
-      e.currentTarget.style.transform = "translateY(0)";
-    }}>
-      {/* Nombre + Estrella */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-        <h4 style={{ margin: 0, fontSize: "16px", fontWeight: 600, color: "#333" }}>
-          {testimonio.nombre}
-        </h4>
-        <span style={{ color: "#D4AF37", fontSize: "18px" }}>★★★★★</span>
+    <div className="fm-resumen-ia">
+      <div className="fm-resumen-head">
+        <div className="fm-resumen-eyebrow">
+          <FlorDeLaVida size={20} stroke="#D4AF37" strokeWidth={1} />
+          <span>INFORME DEL AULA</span>
+        </div>
+        <p className="fm-resumen-pitch">
+          Descargá un <strong>informe en PDF</strong> con los datos de esta aula — nombre,
+          tipo, duración, descripción y temas. Ideal para imprimir o guardar.
+        </p>
       </div>
 
-      {/* Mensaje */}
-      <p style={{
-        margin: "0 0 16px",
-        fontSize: "14px",
-        lineHeight: "1.6",
-        color: "#666",
-        fontStyle: "italic"
-      }}>
-        "{testimonio.mensaje}"
-      </p>
+      <div className="fm-informe-ficha">
+        <div className="fm-informe-row"><span>Aula</span><strong>{String(aula.n).padStart(2, "0")}</strong></div>
+        <div className="fm-informe-row"><span>Nombre</span><strong>{aula.nombre || "—"}</strong></div>
+        <div className="fm-informe-row"><span>Tipo</span><strong>{tipo?.label || aula.tipo}</strong></div>
+        {aula.dur ? <div className="fm-informe-row"><span>Duración</span><strong>{aula.dur} min</strong></div> : null}
+        <div className="fm-informe-row"><span>Colección</span><strong>{aula.coleccion || "Frecuencia Mahatma 441"}</strong></div>
+      </div>
 
-      {/* Botón Ver Video */}
-      {testimonio.video_url && (
-        <button onClick={() => onVerVideo(testimonio)} style={{
-          background: "#2FA573",
-          color: "white",
-          border: "none",
-          borderRadius: "8px",
-          padding: "10px 16px",
-          fontSize: "13px",
-          fontWeight: 600,
-          cursor: "pointer",
-          transition: "background 0.3s",
-          width: "100%"
-        }} onMouseEnter={(e) => e.target.style.background = "#258a5f"} onMouseLeave={(e) => e.target.style.background = "#2FA573"}>
-          ▶ Ver testimonio en video
+      {aula.desc && <p className="fm-informe-desc">{aula.desc}</p>}
+      {aula.tags && aula.tags.length > 0 &&
+        <div className="fm-modal-tag-row" style={{ marginTop: 12 }}>
+          {aula.tags.map((t) => <span key={t} className="fm-card-tag">#{t}</span>)}
+        </div>
+      }
+
+      <div className="fm-resumen-actions">
+        <button className="fm-btn fm-btn-primary" onClick={() => window.descargarResumenPDF?.(aula)}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          Descargar informe en PDF
         </button>
-      )}
-    </div>
-  );
+      </div>
+    </div>);
+
 }
 
 // =============================================================================
-// SECCIÓN TESTIMONIOS (para la galería/primera página)
+// RESUMEN IA — generado en vivo con IA a partir de la metadata del aula
 // =============================================================================
-function SeccionTestimonios() {
-  const [testimonios, setTestimonios] = useSTes(window.TESTIMONIOS || []);
-  const [modalAbierto, setModalAbierto] = useSTes(false);
-  const [testimonioSeleccionado, setTestimonioSeleccionado] = useSTes(null);
+function ResumenIA({ aula }) {
+  const [estado, setEstado] = useS4("idle"); // idle | loading | done | error
+  const [resumen, setResumen] = useS4(null); // { titulo, secciones: [{tema, contenido}], temas, comandos }
+  const [error, setError] = useS4(null);
 
-  useETes(() => {
-    window.addEventListener("fm-testimonios-updated", () => {
-      setTestimonios(window.TESTIMONIOS || []);
-    });
+  async function generar() {
+    setEstado("loading");
+    setError(null);
+
+    const tieneTranscripcion = aula.transcripcion && aula.transcripcion.trim().length > 50;
+
+    const prompt = tieneTranscripcion ? `Sos el agente IA de la plataforma "Frecuencia Mahatma 441".
+Tenés acceso a la TRANSCRIPCIÓN REAL del video del aula. Generá un resumen narrado, fiel y útil del contenido REAL del video.
+Escribí EN ESPAÑOL, en tono cálido y claro, accesible para personas en su camino espiritual.
+
+DATOS DEL AULA:
+- Aula N°: ${aula.n}
+- Nombre: ${aula.nombre}
+- Tipo: ${window.TIPOS[aula.tipo]?.label || aula.tipo}
+- Duración: ${aula.dur ? aula.dur + " minutos" : "(no especificada)"}
+- Descripción: ${aula.desc || "(sin descripción)"}
+- Temas: ${(aula.tags || []).join(", ") || "(sin tags)"}
+
+TRANSCRIPCIÓN REAL DEL VIDEO (lo que se dice):
+"""
+${aula.transcripcion}
+"""
+
+Basándote ÚNICAMENTE en lo que dice la transcripción de arriba (no inventes contenido que no esté ahí), devolvé JSON:
+{
+  "intro": "1-2 frases que sintetizan de qué trata esta aula según lo que se dijo en el video",
+  "secciones": [
+    { "minuto": "0-10", "tema": "...", "contenido": "qué se hace/dice REALMENTE en esos minutos según la transcripción" }
+  ],
+  "comandos_clave": ["los decretos y comandos textuales que aparecen en el video"],
+  "para_quien": "para quién es esta aula según lo que se trabaja en ella"
+}
+
+Generá entre 3 y 6 secciones siguiendo el flujo real del video. Si la transcripción tiene timestamps, usalos. Solo el JSON.` : `Sos el agente IA de la plataforma "Frecuencia Mahatma 441".
+ATENCIÓN: esta aula NO TIENE TRANSCRIPCIÓN cargada. Solo tenés acceso a la metadata (nombre, descripción y tags), no al contenido real del video.
+
+DATOS DEL AULA:
+- Aula N°: ${aula.n}
+- Nombre: ${aula.nombre}
+- Tipo: ${window.TIPOS[aula.tipo]?.label || aula.tipo}
+- Duración: ${aula.dur ? aula.dur + " minutos" : "(no especificada)"}
+- Descripción: ${aula.desc || "(sin descripción)"}
+- Temas: ${(aula.tags || []).join(", ") || "(sin tags)"}
+
+Generá una EXPECTATIVA TENTATIVA de la estructura del aula, dejando MUY CLARO que es una hipótesis. Devolvé JSON:
+{
+  "sin_transcripcion": true,
+  "intro": "Aviso: este resumen es una hipótesis basada en metadata, no en el video real. Para resúmenes precisos cargá la transcripción del audio en el panel admin.",
+  "secciones": [
+    { "minuto": "estimado X-Y", "tema": "...", "contenido": "hipótesis basada en el tipo y descripción" }
+  ],
+  "comandos_clave": ["comandos típicos para este tipo de aula"],
+  "para_quien": "para quién podría servir esta aula"
+}
+
+Solo el JSON, sin texto extra.`;
+
+    try {
+      const raw = await window.askIA(prompt);
+      const json = raw.replace(/^```(?:json)?\s*|\s*```\s*$/g, "").trim();
+      const parsed = JSON.parse(json);
+      parsed.tieneTranscripcion = tieneTranscripcion;
+      setResumen(parsed);
+      setEstado("done");
+    } catch (e) {
+      setError(e.message || "No pude generar el resumen. Intentá de nuevo.");
+      setEstado("error");
+    }
+  }
+
+  async function descargarPDF() {
+    if (!resumen) return;
+    window.descargarResumenPDF?.(aula, resumen);
+  }
+
+  return (
+    <div className="fm-resumen-ia">
+      <div className="fm-resumen-head">
+        <div className="fm-resumen-eyebrow">
+          <FlorDeLaVida size={20} stroke="#D4AF37" strokeWidth={1} />
+          <span>RESUMEN IA · GENERADO POR EL AGENTE</span>
+        </div>
+        {estado === "idle" &&
+        <>
+            <p className="fm-resumen-pitch">
+              Pedile al agente que te haga un <strong>resumen completo de esta aula</strong> —
+              qué pasa minuto a minuto, qué comandos se invocan y qué activaciones se reciben.
+            </p>
+            {!aula.transcripcion &&
+          <div className="fm-resumen-warning">
+                ⚠️ <strong>Esta aula no tiene transcripción cargada.</strong> El agente solo puede generar una hipótesis basada en la descripción.
+                Para resúmenes <em>reales</em> del video, cargá la transcripción del audio en el panel <strong>Admin</strong>.
+              </div>
+          }
+            {aula.transcripcion &&
+          <div className="fm-resumen-trust">
+                ✓ Esta aula tiene transcripción cargada — el resumen va a estar basado en el contenido REAL del video.
+              </div>
+          }
+          </>
+        }
+      </div>
+
+      {estado === "idle" &&
+      <button className="fm-btn fm-btn-primary fm-btn-lg" onClick={generar}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2l2.4 7.4H22l-6 4.4 2.3 7.2L12 16.6 5.7 21l2.3-7.2L2 9.4h7.6z" /></svg>
+          Generar resumen con IA
+        </button>
+      }
+
+      {estado === "loading" &&
+      <div className="fm-resumen-loading">
+          <div className="fm-thinking-orb" style={{ width: 48, height: 48 }}>
+            <div className="fm-thinking-pulse"></div>
+            <FlorDeLaVida size={48} stroke="#2FA573" strokeWidth={0.8} opacity={0.8} />
+          </div>
+          <div>
+            <strong>El agente está leyendo el aula...</strong>
+            <div className="fm-resumen-loading-sub">Procesando metadata y armando el resumen</div>
+          </div>
+        </div>
+      }
+
+      {estado === "error" &&
+      <div className="fm-error">
+          <strong>⚠ {error}</strong>
+          <button className="fm-btn fm-btn-ghost fm-btn-sm" onClick={generar} style={{ marginLeft: 12 }}>
+            Reintentar
+          </button>
+        </div>
+      }
+
+      {estado === "done" && resumen &&
+      <div className="fm-resumen-content">
+          {!resumen.tieneTranscripcion &&
+        <div className="fm-resumen-warning" style={{ marginBottom: 20 }}>
+              ⚠️ <strong>Resumen tentativo</strong> — hipótesis basada en la descripción del aula, no en el video real.
+              Cargá la transcripción en Admin para obtener un resumen fiel al contenido.
+            </div>
+        }
+          {resumen.intro && <p className="fm-resumen-intro">{resumen.intro}</p>}
+
+          {resumen.secciones && resumen.secciones.length > 0 &&
+        <>
+              <h4 className="fm-resumen-h">Recorrido del aula</h4>
+              <ol className="fm-resumen-secciones">
+                {resumen.secciones.map((s, i) =>
+            <li key={i}>
+                    <div className="fm-resumen-sec-head">
+                      <span className="fm-resumen-min">{s.minuto || `${i + 1}`}</span>
+                      <span className="fm-resumen-tema">{s.tema}</span>
+                    </div>
+                    <p className="fm-resumen-cont">{s.contenido}</p>
+                  </li>
+            )}
+              </ol>
+            </>
+        }
+
+          {resumen.comandos_clave && resumen.comandos_clave.length > 0 &&
+        <>
+              <h4 className="fm-resumen-h">Comandos / decretos clave</h4>
+              <ul className="fm-resumen-comandos">
+                {resumen.comandos_clave.map((c, i) => <li key={i}>{c}</li>)}
+              </ul>
+            </>
+        }
+
+          {resumen.para_quien &&
+        <div className="fm-resumen-para">
+              <span className="fm-resumen-para-label">Para quién</span>
+              <span className="fm-resumen-para-text">{resumen.para_quien}</span>
+            </div>
+        }
+
+          <div className="fm-resumen-actions">
+            <button className="fm-btn fm-btn-primary" onClick={descargarPDF}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              Descargar PDF del resumen
+            </button>
+            <button className="fm-btn fm-btn-ghost" onClick={generar}>
+              Generar otra versión
+            </button>
+          </div>
+        </div>
+      }
+    </div>);
+
+}
+
+// =============================================================================
+// ADMIN PANEL — editor visual para cargar/editar las 41 aulas
+// =============================================================================
+function AdminPanelInner({ onClose, initialAulaN }) {
+  // Carga LAZY — empieza vacío y llena en el siguiente tick para no bloquear
+  // el renderer durante la primera pasada de React (previene freeze del browser).
+  const [aulas, setAulas] = useS4([]);
+  const [listo, setListo] = useS4(false);
+  const [selN, setSelN] = useS4(initialAulaN || null);
+  const [dirty, setDirty] = useS4({}); // {n: patch}
+  const [filtro, setFiltro] = useS4("");
+  const [filtroCol, setFiltroCol] = useS4("todas");
+  const [saved, setSaved] = useS4(false);
+  const [showImport, setShowImport] = useS4(false);
+
+  useE4(() => {
+    // Cargar aulas de forma asíncrona para no bloquear el render inicial
+    const t = setTimeout(() => {
+      try {
+        const lista = Array.isArray(window.AULAS) ? window.AULAS : [];
+        setAulas(lista);
+        setSelN((prev) => prev || lista[0]?.n || null);
+      } catch(e) { console.error("AdminPanel: error cargando aulas", e); }
+      setListo(true);
+    }, 0);
+    return () => clearTimeout(t);
   }, []);
 
-  const conVideo = testimonios.filter(t => t.video_url);
+  useE4(() => {
+    const onKey = (e) => {if (e.key === "Escape") onClose();};
+    window.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {window.removeEventListener("keydown", onKey);document.body.style.overflow = "";};
+  }, []);
 
-  if (testimonios.length === 0) return null;
+  // sync con cambios externos
+  useE4(() => {
+    const fn = () => setAulas(window.AULAS);
+    window.addEventListener("fm-aulas-updated", fn);
+    return () => window.removeEventListener("fm-aulas-updated", fn);
+  }, []);
+
+  const sel = aulas.find((a) => a.n === selN);
+  const colecciones = useM4(() => {
+    const s = new Set(aulas.map((a) => a.coleccion || "Frecuencia Mahatma 441"));
+    (window.COLECCIONES_DEFAULT || []).forEach((c) => s.add(c));
+    return Array.from(s);
+  }, [aulas]);
+
+  function patchSel(field, value) {
+    setSaved(false);
+    setAulas((prev) => prev.map((a) => {
+      if (a.n === selN) {
+        const updated = { ...a, [field]: value };
+        // Si editan nombre o descripción, marcar como NO borrador
+        if (field === "nombre" || field === "desc") {
+          updated.borrador = false;
+        } else if (field === "borrador") {
+          updated.borrador = value;
+        }
+        return updated;
+      }
+      return a;
+    }));
+    setDirty((d) => ({ ...d, [selN]: { ...(d[selN] || {}), [field]: value, borrador: field === "nombre" || field === "desc" ? false : undefined } }));
+  }
+
+  function nuevaAula() {
+    const n = window.addAula({ coleccion: filtroCol !== "todas" ? filtroCol : "Frecuencia Mahatma 441" });
+    setSelN(n);
+  }
+
+  function eliminarAula() {
+    if (!sel) return;
+    if (!confirm(`¿Eliminar el aula ${String(sel.n).padStart(2, "0")} — "${sel.nombre}"? Esta acción no se puede deshacer.`)) return;
+    window.deleteAula(sel.n);
+    const rest = window.AULAS;
+    setSelN(rest[0]?.n);
+    setDirty((d) => {const c = { ...d };delete c[sel.n];return c;});
+  }
+
+  function guardarTodo() {
+    Object.entries(dirty).forEach(([n, patch]) => {
+      window.saveAulaPatch(parseInt(n, 10), patch);
+    });
+    setDirty({});
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2200);
+  }
+
+  function descartar() {
+    setAulas(window.AULAS);
+    setDirty({});
+  }
+
+  function exportarJSON() {
+    const json = window.exportAulasJSON();
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;a.download = "frecuencia-mahatma-441-aulas.json";a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function copiarJSON() {
+    try {
+      await navigator.clipboard.writeText(window.exportAulasJSON());
+      setSaved("copiado");
+      setTimeout(() => setSaved(false), 2200);
+    } catch {}
+  }
+
+  function resetearTodo() {
+    if (!confirm("Esto borra TODAS las ediciones y vuelve a los valores originales. ¿Confirmar?")) return;
+    window.resetAulaOverrides();
+    setAulas(window.AULAS);
+    setDirty({});
+  }
+
+  function resetearEsta() {
+    if (!sel) return;
+    window.resetAulaOverrides(selN);
+    setAulas(window.AULAS);
+    setDirty((d) => {const c = { ...d };delete c[selN];return c;});
+  }
+
+  function importar() {
+    setShowImport(true);
+  }
+
+  const filtradas = aulas.filter((a) => {
+    if (filtroCol !== "todas" && (a.coleccion || "Frecuencia Mahatma 441") !== filtroCol) return false;
+    if (filtro && !`${a.n} ${a.nombre} ${(a.tags || []).join(" ")}`.toLowerCase().includes(filtro.toLowerCase())) return false;
+    return true;
+  });
+
+  const dirtyCount = Object.keys(dirty).length;
+  const borradorCount = aulas.filter((a) => a.borrador).length;
+
+  // Pantalla de carga — se muestra menos de 1 frame, evita congelar el browser
+  if (!listo) return (
+    <div style={{ position:"fixed", inset:0, zIndex:150, background:"#0d1f1b", display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:20 }}>
+      <FlorDeLaVida size={64} stroke="#D4AF37" strokeWidth={0.8} opacity={0.7} />
+      <p style={{ color:"rgba(255,255,255,0.6)", fontFamily:"var(--fm-ui-font)", fontSize:14, letterSpacing:"0.1em" }}>Cargando panel admin…</p>
+    </div>
+  );
 
   return (
-    <section style={{
-      background: "linear-gradient(135deg, #f5f3ee 0%, #ebe9e1 100%)",
-      padding: "60px 20px",
-      borderTop: "2px solid #D4AF37"
-    }}>
-      <div style={{ maxWidth: "1220px", margin: "0 auto" }}>
-        {/* Encabezado */}
-        <div style={{ textAlign: "center", marginBottom: "48px" }}>
-          <div style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "12px",
-            fontSize: "13px",
-            fontWeight: 600,
-            letterSpacing: "0.15em",
-            textTransform: "uppercase",
-            color: "#D4AF37",
-            marginBottom: "16px"
-          }}>
-            <span style={{ display: "inline-block", width: "20px", height: "1px", background: "#D4AF37" }}></span>
-            Testimonios
-            <span style={{ display: "inline-block", width: "20px", height: "1px", background: "#D4AF37" }}></span>
+    <div className="fm-admin">
+      <div className="fm-admin-bar">
+        <div className="fm-admin-bar-left">
+          <div className="fm-admin-title">
+            <FlorDeLaVida size={28} stroke="#D4AF37" strokeWidth={1} />
+            <span>Editor de aulas</span>
+            <em>· Frecuencia Mahatma 441</em>
           </div>
-          <h2 style={{
-            margin: "0 0 16px",
-            fontSize: "36px",
-            fontWeight: 600,
-            fontFamily: "'Cormorant Garamond', Georgia, serif",
-            color: "#333"
-          }}>
-            Experiencias de transformación
-          </h2>
-          <p style={{
-            margin: 0,
-            fontSize: "15px",
-            color: "#666",
-            lineHeight: "1.6",
-            maxWidth: "600px",
-            margin: "0 auto"
-          }}>
-            Mira cómo la Frecuencia Mahatma 441 ha impactado la vida de nuestros participantes.
+          <div className="fm-admin-stats">
+            <span><strong>{aulas.length}</strong> aulas en total</span>
+            <span>·</span>
+            <span><strong>{aulas.filter((a) => a.viva).length}</strong> en vivo</span>
+            <span>·</span>
+            <span><strong>{aulas.filter((a) => window.getVimeoId?.(a.vimeo)).length}</strong> con Vimeo</span>
+            {borradorCount > 0 && <><span>·</span><span className="fm-admin-stats-warn"><strong>{borradorCount}</strong> en borrador</span></>}
+          </div>
+        </div>
+        <div className="fm-admin-bar-right">
+          {saved && <span className="fm-admin-saved">✓ {saved === "copiado" ? "JSON copiado al portapapeles" : "Cambios aplicados"}</span>}
+          {dirtyCount > 0 &&
+          <>
+              <button className="fm-btn fm-btn-ghost fm-btn-sm" onClick={descartar}>Descartar</button>
+              <button className="fm-btn fm-btn-primary fm-btn-sm" onClick={guardarTodo}>
+                Guardar {dirtyCount} cambio{dirtyCount > 1 ? "s" : ""}
+              </button>
+            </>
+          }
+          <button className="fm-btn fm-btn-secondary fm-btn-sm" onClick={exportarJSON}>Descargar JSON</button>
+          <button className="fm-btn fm-btn-ghost fm-btn-sm" onClick={copiarJSON}>Copiar JSON</button>
+          <button className="fm-btn fm-btn-ghost fm-btn-sm" onClick={importar}>Importar JSON</button>
+          <button className="fm-admin-close" onClick={onClose} aria-label="Cerrar">×</button>
+        </div>
+      </div>
+
+      <div className="fm-admin-body">
+        {/* Sidebar list */}
+        <aside className="fm-admin-side">
+          <button className="fm-admin-add" onClick={nuevaAula}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14" strokeLinecap="round" /></svg>
+            Nueva aula
+          </button>
+          <div className="fm-admin-side-search">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4-4" strokeLinecap="round" /></svg>
+            <input value={filtro} onChange={(e) => setFiltro(e.target.value)} placeholder="Filtrar aulas..." />
+          </div>
+          <div className="fm-admin-side-cols">
+            <button className={filtroCol === "todas" ? "active" : ""} onClick={() => setFiltroCol("todas")}>Todas <span>{aulas.length}</span></button>
+            {colecciones.map((c) => {
+              const count = aulas.filter((a) => (a.coleccion || "Frecuencia Mahatma 441") === c).length;
+              return (
+                <button key={c} className={filtroCol === c ? "active" : ""} onClick={() => setFiltroCol(c)} title={c}>
+                  {c.length > 20 ? c.slice(0, 18) + "…" : c} <span>{count}</span>
+                </button>);
+
+            })}
+          </div>
+          <div className="fm-admin-list">
+            {filtradas.map((a) =>
+            <button
+              key={a.n}
+              className={`fm-admin-item ${a.n === selN ? "active" : ""} ${a.viva ? "viva" : "pendiente"}`}
+              onClick={() => setSelN(a.n)}>
+              
+                <span className="fm-admin-item-num">{String(a.n).padStart(2, "0")}</span>
+                <span className="fm-admin-item-body">
+                  <span className="fm-admin-item-name">
+                    {a.nombre}
+                    {a.borrador && <span className="fm-admin-borrador">BORRADOR</span>}
+                  </span>
+                  <span className="fm-admin-item-meta">
+                    <span className={`fm-admin-dot ${a.viva ? "viva" : "pendiente"}`}></span>
+                    {a.viva ? "EN VIVO" : "PRÓXIMA"}
+                    {window.getVimeoId?.(a.vimeo) && <span className="fm-admin-vimeo">· VIMEO ✓</span>}
+                    {dirty[a.n] && <span className="fm-admin-dirty">· editada</span>}
+                  </span>
+                </span>
+              </button>
+            )}
+            {filtradas.length === 0 &&
+            <div style={{ padding: 20, color: "#888", fontSize: 12 }}>
+                No hay aulas con esos criterios.
+              </div>
+            }
+          </div>
+        </aside>
+
+        {/* Editor */}
+        <main className="fm-admin-main">
+          {sel &&
+          <AulaEditor
+            aula={sel}
+            colecciones={colecciones}
+            onChange={patchSel}
+            onResetEsta={resetearEsta}
+            onDelete={eliminarAula}
+            hasOverride={!!dirty[sel.n]} />
+
+          }
+          {!sel &&
+          <div className="fm-admin-empty">
+              <FlorDeLaVida size={64} stroke="#D4AF37" strokeWidth={0.8} opacity={0.5} />
+              <h3>No hay aulas todavía</h3>
+              <p>Empezá creando una con "+ Nueva aula".</p>
+            </div>
+          }
+          <div className="fm-admin-danger">
+            <button className="fm-btn fm-btn-ghost fm-btn-sm" onClick={resetearTodo}>
+              Resetear TODAS a valores originales
+            </button>
+          </div>
+          <AdminTestimonios onClose={onClose} />
+        </main>
+      </div>
+
+      {showImport && <ImportDialog onClose={() => setShowImport(false)} />}
+    </div>);
+
+}
+
+function ImportDialog({ onClose }) {
+  const [txt, setTxt] = useS4("");
+  const [err, setErr] = useS4("");
+  function aplicar() {
+    try {
+      window.importAulasJSON(txt);
+      onClose();
+    } catch (e) {
+      setErr(e.message);
+    }
+  }
+  return (
+    <div className="fm-modal-back" onClick={onClose}>
+      <div className="fm-modal fm-modal-sm" onClick={(e) => e.stopPropagation()}>
+        <button className="fm-modal-close" onClick={onClose}>×</button>
+        <div style={{ padding: "32px" }}>
+          <h3 style={{ marginTop: 0 }}>Importar JSON de aulas</h3>
+          <p style={{ color: "#666", fontSize: 13 }}>
+            Peguá acá un JSON válido (un array de aulas). Reemplaza la lista actual.
           </p>
+          <textarea
+            className="fm-input fm-textarea"
+            rows={10}
+            value={txt}
+            onChange={(e) => {setTxt(e.target.value);setErr("");}}
+            placeholder='[{"n": 1, "nombre": "...", "vimeo": "..."}]' />
+          
+          {err && <div style={{ color: "#C44", fontSize: 13, marginTop: 8 }}>⚠ {err}</div>}
+          <div style={{ display: "flex", gap: 10, marginTop: 16, justifyContent: "flex-end" }}>
+            <button className="fm-btn fm-btn-ghost fm-btn-sm" onClick={onClose}>Cancelar</button>
+            <button className="fm-btn fm-btn-primary fm-btn-sm" onClick={aplicar}>Importar</button>
+          </div>
+        </div>
+      </div>
+    </div>);
+
+}
+
+function AulaEditor({ aula, colecciones, onChange, onResetEsta, onDelete, hasOverride }) {
+  // SIN iframe de Vimeo — evita el freeze del browser al abrir el admin
+  const vimeoId  = window.getVimeoId?.(aula.vimeo);
+  const vimeoOk  = !!vimeoId;
+  const vimeoUrl = vimeoOk ? `https://vimeo.com/${vimeoId}` : null;
+  const [nuevaCol, setNuevaCol] = useS4("");
+
+  // --- Materiales ---
+  const materiales = aula.materiales || [];
+
+  function addMaterial() {
+    const nuevo = { nombre: "Nuevo material", url: "", tipo: "pdf", desc: "" };
+    onChange("materiales", [...materiales, nuevo]);
+  }
+
+  function updateMaterial(i, field, value) {
+    const updated = materiales.map((m, idx) => idx === i ? { ...m, [field]: value } : m);
+    onChange("materiales", updated);
+  }
+
+  function removeMaterial(i) {
+    onChange("materiales", materiales.filter((_, idx) => idx !== i));
+  }
+
+  // --- Subida de archivos (local) ---
+  async function onPickFile(i, file) {
+    if (!file) return;
+    if (!window.FMFiles) { alert("El almacenamiento de archivos no está disponible en este navegador."); return; }
+    try {
+      const meta = await window.FMFiles.save(file, { name: file.name });
+      const updated = materiales.map((m, idx) => idx === i ? {
+        ...m,
+        fuente: "local", fileId: meta.id, size: meta.size, mime: meta.mime, url: "",
+        nombre: (!m.nombre || m.nombre === "Nuevo material") ? file.name : m.nombre,
+        tipo: guessTipoMaterial(file)
+      } : m);
+      onChange("materiales", updated);
+    } catch (e) {
+      alert("No pude guardar el archivo: " + (e.message || e));
+    }
+  }
+
+  function clearMaterialFile(i) {
+    const m = materiales[i];
+    if (m.fileId && window.FMFiles) window.FMFiles.remove(m.fileId);
+    const updated = materiales.map((mm, idx) => idx === i ? { ...mm, fuente: "url", fileId: undefined, size: undefined, mime: undefined } : mm);
+    onChange("materiales", updated);
+  }
+
+  async function subirAudioAula(file) {
+    if (!file || !window.FMFiles) return;
+    try {
+      const meta = await window.FMFiles.save(file, { name: file.name });
+      onChange("audioFileId", meta.id);
+      onChange("audioName", file.name);
+      onChange("audioSize", meta.size);
+    } catch (e) {
+      alert("No pude guardar el audio: " + (e.message || e));
+    }
+  }
+
+  function quitarAudioAula() {
+    if (aula.audioFileId && window.FMFiles) window.FMFiles.remove(aula.audioFileId);
+    onChange("audioFileId", undefined);
+    onChange("audioName", undefined);
+    onChange("audioSize", undefined);
+  }
+
+  return (
+    <div className="fm-editor">
+      <div className="fm-editor-head">
+        <div>
+          <div className="fm-editor-num">
+            AULA {String(aula.n).padStart(2, "0")}
+            {aula.borrador && <span className="fm-admin-borrador" style={{ marginLeft: 8 }}>BORRADOR — confirmar con video</span>}
+          </div>
+          <h2>Editar aula</h2>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          {hasOverride && <button className="fm-btn fm-btn-ghost fm-btn-sm" onClick={onResetEsta}>Volver al original</button>}
+          <button className="fm-btn fm-btn-ghost fm-btn-sm fm-btn-danger" onClick={onDelete}>Eliminar aula</button>
+        </div>
+      </div>
+
+      {aula.borrador &&
+      <div className="fm-editor-borrador-banner">
+          ⚠️ Este aula tiene un <strong>nombre de borrador</strong> que yo inventé como sugerencia.
+          Confirmá el nombre y la descripción con el video real antes de publicar. Al editar el nombre o la descripción se marca como confirmada automáticamente.
+        </div>
+      }
+
+      <Field label="Nombre del aula">
+        <input
+          className="fm-input"
+          value={aula.nombre || ""}
+          onChange={(e) => onChange("nombre", e.target.value)}
+          placeholder="Ej: Apertura del Portal 441" />
+        
+      </Field>
+
+      <Field label="Link de Vimeo" hint="Pegá el link completo. Funciona con videos públicos y privados (incluye el token de privacidad si lo tiene). Al cargar un video válido, el aula se publica automáticamente en la página principal.">
+        <input
+          className={`fm-input ${aula.vimeo ? vimeoOk ? "ok" : "bad" : ""}`}
+          value={aula.vimeo || ""}
+          onChange={(e) => {
+            const v = e.target.value;
+            onChange("vimeo", v);
+            // Al cargar un video válido, publicar el aula automáticamente
+            if (window.getVimeoId?.(v) && !aula.viva) onChange("viva", true);
+          }}
+          placeholder="https://vimeo.com/..." />
+        
+        {vimeoOk && !aula.viva &&
+        <div className="fm-input-status ok" style={{ marginTop: 6 }}>
+            ✓ Video detectado — el aula se publicará al guardar. Si querés ocultarla, cambiá el Estado a "Próximamente".
+          </div>
+        }
+        
+        {aula.vimeo &&
+        <div className={`fm-input-status ${vimeoOk ? "ok" : "bad"}`}>
+            {vimeoOk ?
+          <>
+                ✓ ID: {vimeoId}
+                {window.getVimeoHash?.(aula.vimeo) && <> · token privado: {window.getVimeoHash?.(aula.vimeo)} 🔒</>}
+                {" "}·{" "}
+                <a href={vimeoUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#2FA573" }}>
+                  Ver en Vimeo ↗
+                </a>
+              </> :
+          "⚠ No reconozco ese formato de link"}
+          </div>
+        }
+      </Field>
+
+      <Field label="Audio del aula (opcional)" hint="Subí la grabación de audio del aula (MP3, M4A, WAV). Queda guardada y los alumnos la pueden escuchar y descargar desde la pestaña Materiales.">
+        {aula.audioFileId ?
+        <div className="fm-file-chip">
+            <span>🎵 {aula.audioName || "audio"} · {window.FMFiles?.human(aula.audioSize)}</span>
+            <button className="fm-btn fm-btn-ghost fm-btn-sm fm-btn-danger" style={{ padding: "2px 10px" }} onClick={quitarAudioAula}>Quitar</button>
+          </div> :
+
+        <div className="fm-upload-row">
+            <input type="file" id="aula-audio-file" style={{ display: "none" }} accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac" onChange={(e) => subirAudioAula(e.target.files[0])} />
+            <button className="fm-btn fm-btn-secondary fm-btn-sm" onClick={() => document.getElementById("aula-audio-file").click()}>
+              ⬆ Subir audio del aula
+            </button>
+          </div>
+        }
+      </Field>
+
+      <div className="fm-editor-row">
+        <Field label="Duración (minutos)">
+          <input
+            type="number"
+            className="fm-input"
+            value={aula.dur || ""}
+            onChange={(e) => onChange("dur", parseInt(e.target.value, 10) || 0)}
+            placeholder="47" />
+          
+        </Field>
+        <Field label="Tipo de contenido">
+          <select
+            className="fm-input"
+            value={aula.tipo || "ACT"}
+            onChange={(e) => onChange("tipo", e.target.value)}>
+            
+            <option value="ACT">Activación</option>
+            <option value="MED">Meditación</option>
+            <option value="REP">Reprogramación</option>
+            <option value="CMD">Comando</option>
+          </select>
+        </Field>
+        <Field label="Estado">
+          <select
+            className="fm-input"
+            value={aula.viva ? "viva" : "pendiente"}
+            onChange={(e) => onChange("viva", e.target.value === "viva")}>
+            
+            <option value="viva">En vivo · visible</option>
+            <option value="pendiente">Próximamente</option>
+          </select>
+        </Field>
+      </div>
+
+      <Field label="Descripción" hint="Resumen breve del contenido. La IA lo usa para responder preguntas.">
+        <textarea
+          className="fm-input fm-textarea"
+          rows={4}
+          value={aula.desc || ""}
+          onChange={(e) => onChange("desc", e.target.value)}
+          placeholder="Activación inicial del código sagrado..." />
+        
+      </Field>
+
+      <Field label="Tags / temas" hint="Separados por coma. Mejoran la búsqueda del agente IA.">
+        <input
+          className="fm-input"
+          value={(aula.tags || []).join(", ")}
+          onChange={(e) => onChange("tags", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
+          placeholder="código 441, apertura, anclaje" />
+        
+      </Field>
+
+      <Field
+        label="Transcripción / Notas del video"
+        hint="🧠 ESTE ES EL CAMPO MÁS IMPORTANTE PARA LA IA. Pegá acá lo que se DICE en el video — palabra por palabra, o un esquema con timestamps y temas. La IA usa este texto para generar resúmenes reales del aula. Sin transcripción, el agente solo puede repetir la descripción.">
+        
+        <textarea
+          className="fm-input fm-textarea fm-textarea-lg"
+          rows={10}
+          value={aula.transcripcion || ""}
+          onChange={(e) => onChange("transcripcion", e.target.value)}
+          placeholder={"Ej:\n\n0:00 - Apertura: invocación al código 441. Se respira 4-4-1.\n5:00 - Anclaje del campo áurico. Comando: \"Yo soy la frecuencia Mahatma 441\"\n12:00 - Visualización de la flor de la vida girando sobre la coronilla\n22:00 - Activación de la abundancia. Decreto: \"Yo recibo, yo merezco, yo manifiesto\"\n38:00 - Sellado y cierre energético\n45:00 - Cierre con agradecimiento\n\nO directamente la transcripción palabra por palabra del audio."}
+          style={{ fontFamily: "var(--fm-mono-font)", fontSize: 13, lineHeight: 1.6 }} />
+        
+        {aula.transcripcion &&
+        <div className="fm-input-status ok" style={{ marginTop: 8 }}>
+            ✓ {aula.transcripcion.length.toLocaleString()} caracteres · la IA usará este texto como base
+          </div>
+        }
+      </Field>
+
+      {/* ---- MATERIALES ---- */}
+      <div className="fm-field">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <label className="fm-field-label" style={{ margin: 0 }}>Materiales descargables</label>
+          <button className="fm-btn fm-btn-secondary fm-btn-sm" onClick={addMaterial}>
+            + Agregar material
+          </button>
+        </div>
+        <div className="fm-field-hint" style={{ marginBottom: 12 }}>
+          PDFs, documentos (DOC), audios, imágenes o presentaciones que los alumnos puedan descargar desde la pestaña "Materiales" del aula.
+        </div>
+        <div className="fm-storage-note">
+          📦 Por ahora los archivos se guardan <strong>en este navegador</strong> (modo local): podés subirlos, probarlos y descargarlos ya mismo. Para que <strong>todos los alumnos</strong> los vean online, el próximo paso es conectar Cloudflare R2.
         </div>
 
-        {/* Grid de testimonios */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-          gap: "24px",
-          marginBottom: "40px"
-        }}>
-          {testimonios.map((t) => (
-            <TarjetaTestimonio
-              key={t.id}
-              testimonio={t}
-              onVerVideo={(testimonio) => {
-                setTestimonioSeleccionado(testimonio);
-                setModalAbierto(true);
-              }}
-            />
-          ))}
+        {materiales.length === 0 && (
+          <div style={{ padding: "16px", background: "#faf9f5", border: "1px solid var(--fm-silver)", borderRadius: 8, color: "var(--fm-text-dim)", fontSize: 13, textAlign: "center" }}>
+            Sin materiales todavía. Hacé clic en "+ Agregar material" para añadir el primero.
+          </div>
+        )}
+
+        {materiales.map((m, i) => (
+          <div key={i} className="fm-material-editor">
+            <div className="fm-material-editor-head">
+              <span style={{ color: "var(--fm-text-dim)", fontSize: 12 }}>Material #{i + 1}</span>
+              <button
+                className="fm-btn fm-btn-ghost fm-btn-sm fm-btn-danger"
+                onClick={() => removeMaterial(i)}
+                style={{ padding: "2px 8px", fontSize: 12 }}>
+                Eliminar
+              </button>
+            </div>
+            <div className="fm-editor-row" style={{ gap: 10 }}>
+              <Field label="Nombre">
+                <input
+                  className="fm-input"
+                  value={m.nombre || ""}
+                  onChange={(e) => updateMaterial(i, "nombre", e.target.value)}
+                  placeholder="Ej: Guía de práctica PDF" />
+              </Field>
+              <Field label="Tipo">
+                <select
+                  className="fm-input"
+                  value={m.tipo || "pdf"}
+                  onChange={(e) => updateMaterial(i, "tipo", e.target.value)}>
+                  <option value="pdf">📄 PDF</option>
+                  <option value="imagen">🖼️ Imagen</option>
+                  <option value="presentacion">📊 Presentación</option>
+                  <option value="audio">🎵 Audio</option>
+                  <option value="video">🎬 Video</option>
+                  <option value="otro">📎 Otro</option>
+                </select>
+              </Field>
+            </div>
+            <Field label="Archivo" hint="Subí el archivo desde tu compu (PDF, DOC, audio, imagen…) o pegá un link externo.">
+              {m.fuente === "local" && m.fileId ?
+              <div className="fm-file-chip">
+                  <span>✓ archivo guardado · {window.FMFiles?.human(m.size)}</span>
+                  <button className="fm-btn fm-btn-ghost fm-btn-sm fm-btn-danger" style={{ padding: "2px 10px" }} onClick={() => clearMaterialFile(i)}>Quitar</button>
+                </div> :
+
+              <div className="fm-upload-row">
+                  <input type="file" id={`mat-file-${i}`} style={{ display: "none" }}
+                  accept=".pdf,.doc,.docx,.odt,.rtf,.txt,.ppt,.pptx,.key,.mp3,.m4a,.wav,.ogg,.aac,.jpg,.jpeg,.png,.webp,.gif,.zip"
+                  onChange={(e) => onPickFile(i, e.target.files[0])} />
+                  <button className="fm-btn fm-btn-secondary fm-btn-sm" onClick={() => document.getElementById(`mat-file-${i}`).click()}>
+                    ⬆ Subir archivo
+                  </button>
+                  <span className="fm-or">o link:</span>
+                  <input className="fm-input" value={m.url || ""} onChange={(e) => updateMaterial(i, "url", e.target.value)} placeholder="https://drive.google.com/..." style={{ flex: 1 }} />
+                </div>
+              }
+            </Field>
+            <Field label="Descripción breve (opcional)">
+              <input
+                className="fm-input"
+                value={m.desc || ""}
+                onChange={(e) => updateMaterial(i, "desc", e.target.value)}
+                placeholder="Ej: Mandala para imprimir y colorear durante la práctica" />
+            </Field>
+          </div>
+        ))}
+      </div>
+
+      <Field label="Colección" hint="Agrupá las aulas por colección. Podés crear nuevas colecciones para activaciones complementarias o cualquier otro contenido.">
+        <div style={{ display: "flex", gap: 8 }}>
+          <select
+            className="fm-input"
+            value={aula.coleccion || "Frecuencia Mahatma 441"}
+            onChange={(e) => onChange("coleccion", e.target.value)}
+            style={{ flex: 1 }}>
+            
+            {colecciones.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <input
+            className="fm-input"
+            value={nuevaCol}
+            onChange={(e) => setNuevaCol(e.target.value)}
+            placeholder="+ Nueva colección"
+            style={{ flex: 1 }} />
+          
+          <button
+            className="fm-btn fm-btn-secondary fm-btn-sm"
+            disabled={!nuevaCol.trim()}
+            onClick={() => {onChange("coleccion", nuevaCol.trim());setNuevaCol("");}}>
+            
+            Crear y asignar
+          </button>
+        </div>
+      </Field>
+    </div>);
+
+}
+
+function Field({ label, hint, children }) {
+  return (
+    <div className="fm-field">
+      <label className="fm-field-label">{label}</label>
+      {children}
+      {hint && <div className="fm-field-hint">{hint}</div>}
+    </div>);
+
+}
+
+// =============================================================================
+// Botón flotante de Admin
+// =============================================================================
+function AdminFAB({ onClick }) {
+  return (
+    <button className="fm-admin-fab" onClick={onClick} title="Editar aulas">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" /></svg>
+      <span>Admin</span>
+    </button>);
+
+}
+
+class AdminErrorBoundary extends React.Component {
+  constructor(p) { super(p); this.state = { err: null, info: null }; }
+  static getDerivedStateFromError(e) { return { err: e }; }
+  componentDidCatch(e, info) {
+    console.error("🔴 AdminPanel crash — ERROR:", e?.message);
+    console.error("🔴 Stack:", e?.stack);
+    console.error("🔴 Component stack:", info?.componentStack);
+    this.setState({ info });
+  }
+  render() {
+    if (this.state.err) {
+      const msg = this.state.err?.message || "Error desconocido";
+      const stack = this.state.err?.stack || "";
+      return React.createElement("div", {
+        style: { padding: "32px", color: "#fff", background: "#0d1f1b", minHeight: "100vh",
+                 display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "16px", fontFamily: "monospace" }
+      },
+        React.createElement("h2", { style: { color: "#D4AF37", fontFamily: "Georgia, serif" } }, "⚠ Error en el panel Admin"),
+        React.createElement("div", { style: { background: "rgba(255,0,0,0.1)", border: "1px solid rgba(255,0,0,0.3)", borderRadius: "8px", padding: "16px", maxWidth: "700px", width: "100%" } },
+          React.createElement("p", { style: { color: "#ff8080", fontWeight: "bold", marginBottom: "8px" } }, msg),
+          React.createElement("pre", { style: { color: "rgba(255,255,255,0.5)", fontSize: "11px", overflow: "auto", maxHeight: "200px", margin: 0 } }, stack)
+        ),
+        React.createElement("p", { style: { color: "rgba(255,255,255,0.4)", fontSize: "12px" } },
+          "Abrí la consola del navegador (F12 → Console) para ver el error completo."
+        ),
+        React.createElement("button", {
+          style: { padding: "10px 24px", background: "#2FA573", border: "none", borderRadius: "8px", color: "#fff", cursor: "pointer", fontSize: "14px" },
+          onClick: () => this.setState({ err: null, info: null })
+        }, "Reintentar")
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// =============================================================================
+// ADMIN — GESTIÓN DE TESTIMONIOS (SUPABASE)
+// =============================================================================
+function AdminTestimonios({ onClose }) {
+  const [testimonios, setTestimonios] = useS4([]);
+  const [nombre, setNombre] = useS4("");
+  const [mensaje, setMensaje] = useS4("");
+  const [video_url, setVideoUrl] = useS4("");
+  const [editandoId, setEditandoId] = useS4(null);
+  const [cargando, setCargando] = useS4(false);
+  const [listo, setListo] = useS4(false);
+
+  // Cargar testimonios desde Supabase
+  useE4(() => {
+    // Esperar a que supabaseClient esté disponible
+    if (!window.supabaseClient) {
+      console.error("supabaseClient no está disponible");
+      return;
+    }
+    cargarTestimonios();
+  }, []);
+
+  async function cargarTestimonios() {
+    try {
+      setCargando(true);
+      if (!window.supabaseClient) {
+        throw new Error("Supabase no está configurado");
+      }
+      const data = await window.supabaseClient.getTestimonios();
+      setTestimonios(Array.isArray(data) ? data : []);
+      setListo(true);
+    } catch (error) {
+      console.error("Error cargando testimonios:", error);
+      alert("Error cargando testimonios:\n" + error.message);
+      setListo(true);
+    } finally {
+      setCargando(false);
+    }
+  }
+
+  async function agregar() {
+    if (!nombre.trim() || !mensaje.trim()) {
+      alert("Completa nombre y mensaje");
+      return;
+    }
+
+    if (!window.supabaseClient) {
+      alert("Supabase no está configurado");
+      return;
+    }
+
+    try {
+      setCargando(true);
+      if (editandoId) {
+        // Actualizar
+        await window.supabaseClient.updateTestimonio(editandoId, {
+          nombre: nombre.trim(),
+          mensaje: mensaje.trim(),
+          video_url: video_url.trim()
+        });
+      } else {
+        // Crear nuevo
+        await window.supabaseClient.addTestimonio({
+          nombre: nombre.trim(),
+          mensaje: mensaje.trim(),
+          video_url: video_url.trim()
+        });
+      }
+      setNombre("");
+      setMensaje("");
+      setVideoUrl(""); // video_url state
+      await cargarTestimonios();
+    } catch (error) {
+      console.error("Error guardando testimonio:", error);
+      alert("Error: " + error.message);
+    } finally {
+      setCargando(false);
+    }
+  }
+
+  function editar(t) {
+    setEditandoId(t.id);
+    setNombre(t.nombre);
+    setMensaje(t.mensaje);
+    setVideoUrl(t.video_url || "");
+  }
+
+  async function borrar(id) {
+    if (confirm("¿Borrar este testimonio?")) {
+      if (!window.supabaseClient) {
+        alert("Supabase no está configurado");
+        return;
+      }
+
+      try {
+        setCargando(true);
+        await window.supabaseClient.deleteTestimonio(id);
+        await cargarTestimonios();
+      } catch (error) {
+        console.error("Error borrando testimonio:", error);
+        alert("Error: " + error.message);
+      } finally {
+        setCargando(false);
+      }
+    }
+  }
+
+  return (
+    <div style={{ padding: "20px", background: "#f9f9f9", borderRadius: "12px", marginTop: "20px" }}>
+      <h3 style={{ margin: "0 0 20px", color: "#333" }}>Gestionar Testimonios</h3>
+
+      {/* Formulario */}
+      <div style={{ background: "white", padding: "20px", borderRadius: "8px", marginBottom: "20px", border: "1px solid #ddd" }}>
+        <div style={{ marginBottom: "12px" }}>
+          <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "#666", marginBottom: "4px" }}>Nombre</label>
+          <input
+            type="text"
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            placeholder="Nombre de la persona"
+            style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "4px", fontSize: "14px", boxSizing: "border-box" }}
+          />
         </div>
 
-        {/* CTA — Compartir tu experiencia */}
-        <div style={{
-          textAlign: "center",
-          padding: "40px",
-          background: "rgba(255,255,255,0.6)",
-          borderRadius: "12px",
-          border: "1px dashed #D4AF37"
-        }}>
-          <h3 style={{
-            margin: "0 0 12px",
-            fontSize: "18px",
-            fontWeight: 600,
-            color: "#333"
-          }}>
-            ¿Quieres compartir tu experiencia?
-          </h3>
-          <p style={{
-            margin: "0 0 20px",
-            fontSize: "14px",
-            color: "#666"
-          }}>
-            Graba un video corto con tu celular contando cómo te ha transformado el camino Mahatma 441.
-          </p>
-          <button onClick={() => alert("Contactá a Claudio en WhatsApp +598 93422022 para compartir tu testimonio")} style={{
+        <div style={{ marginBottom: "12px" }}>
+          <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "#666", marginBottom: "4px" }}>Mensaje</label>
+          <textarea
+            value={mensaje}
+            onChange={(e) => setMensaje(e.target.value)}
+            placeholder="Su experiencia con Mahatma 441..."
+            style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "4px", fontSize: "14px", boxSizing: "border-box", fontFamily: "inherit", minHeight: "100px" }}
+          />
+        </div>
+
+        <div style={{ marginBottom: "12px" }}>
+          <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "#666", marginBottom: "4px" }}>Link Google Drive del Video (opcional)</label>
+          <input
+            type="text"
+            value={video_url}
+            onChange={(e) => setVideoUrl(e.target.value)}
+            placeholder="https://drive.google.com/file/d/FILE_ID/view?usp=sharing"
+            style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "4px", fontSize: "14px", boxSizing: "border-box" }}
+          />
+        </div>
+
+        <button
+          onClick={agregar}
+          style={{
             background: "#2FA573",
             color: "white",
             border: "none",
-            borderRadius: "8px",
-            padding: "12px 28px",
-            fontSize: "14px",
-            fontWeight: 600,
+            padding: "10px 20px",
+            borderRadius: "6px",
             cursor: "pointer",
-            transition: "background 0.3s"
-          }} onMouseEnter={(e) => e.target.style.background = "#258a5f"} onMouseLeave={(e) => e.target.style.background = "#2FA573"}>
-            Compartir mi testimonio
+            fontWeight: 600,
+            fontSize: "14px"
+          }}
+        >
+          {editandoId ? "Actualizar" : "Agregar"} Testimonio
+        </button>
+        {editandoId && (
+          <button
+            onClick={() => {
+              setEditandoId(null);
+              setNombre("");
+              setMensaje("");
+              setVideoUrl("");
+            }}
+            style={{
+              background: "#999",
+              color: "white",
+              border: "none",
+              padding: "10px 20px",
+              borderRadius: "6px",
+              cursor: "pointer",
+              fontWeight: 600,
+              fontSize: "14px",
+              marginLeft: "8px"
+            }}
+          >
+            Cancelar
           </button>
-        </div>
+        )}
       </div>
 
-      {/* Modal de video */}
-      {modalAbierto && testimonioSeleccionado && (
-        <ModalVideoTestimonio
-          testimonio={testimonioSeleccionado}
-          onClose={() => setModalAbierto(false)}
-        />
-      )}
-    </section>
+      {/* Lista */}
+      <div>
+        <h4 style={{ margin: "0 0 12px", color: "#333", fontSize: "14px" }}>Testimonios actuales ({testimonios.length})</h4>
+        {testimonios.length === 0 ? (
+          <p style={{ color: "#999", fontSize: "13px", margin: 0 }}>No hay testimonios aún</p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            {testimonios.map((t) => (
+              <div key={t.id} style={{
+                background: "white",
+                padding: "12px",
+                borderRadius: "6px",
+                border: "1px solid #ddd",
+                fontSize: "13px"
+              }}>
+                <div style={{ fontWeight: 600, color: "#333", marginBottom: "4px" }}>{t.nombre}</div>
+                <div style={{ color: "#666", marginBottom: "8px", fontStyle: "italic" }}>"{t.mensaje.substring(0, 60)}..."</div>
+                {t.video_url && <div style={{ color: "#2FA573", fontSize: "12px", marginBottom: "8px" }}>✓ Con video</div>}
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button
+                    onClick={() => editar(t)}
+                    style={{
+                      background: "#D4AF37",
+                      color: "white",
+                      border: "none",
+                      padding: "6px 12px",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                      fontSize: "12px",
+                      fontWeight: 600
+                    }}
+                  >
+                    Editar
+                  </button>
+                  <button
+                    onClick={() => borrar(t.id)}
+                    style={{
+                      background: "#e74c3c",
+                      color: "white",
+                      border: "none",
+                      padding: "6px 12px",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                      fontSize: "12px",
+                      fontWeight: 600
+                    }}
+                  >
+                    Borrar
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
-// Exportar para que la app pueda usarlo
-Object.assign(window, { SeccionTestimonios, TarjetaTestimonio, ModalVideoTestimonio });
+const AdminPanelSafe = (props) => React.createElement(AdminErrorBoundary, null, React.createElement(AdminPanelInner, props));
+
+Object.assign(window, { AulaModal, AdminPanel: AdminPanelSafe, AdminFAB, AdminTestimonios });

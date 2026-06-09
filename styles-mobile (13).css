@@ -1,0 +1,184 @@
+// =============================================================================
+// FRECUENCIA MAHATMA 441 — Datos de aulas
+// =============================================================================
+// Cada aula es un objeto con:
+//   n          — número (también sirve como ID estable)
+//   nombre     — título visible
+//   dur        — duración en minutos
+//   tipo       — ACT | MED | REP | CMD
+//   desc       — descripción / resumen para la IA
+//   tags       — array de strings (mejoran búsqueda IA)
+//   viva       — true: visible / false: "próximamente"
+//   vimeo      — link completo de Vimeo
+//   coleccion  — "FM 441" (default) o cualquier otra (ej: "Complementarias")
+//   borrador   — si es true, marca que el nombre/datos son tentativos y faltan
+//                confirmar con el video real
+// =============================================================================
+
+const TIPOS = {
+  ACT: { label: "Activación", color: "#2FA573" },
+  MED: { label: "Meditación", color: "#1A7F5E" },
+  REP: { label: "Reprogramación", color: "#D4AF37" },
+  CMD: { label: "Comando", color: "#9C7A1F" },
+};
+
+const COL_FM = "Frecuencia Mahatma 441";
+const COL_COMP = "Activaciones Complementarias";
+
+// Aulas iniciales — solo Aula 1 está CONFIRMADA (con video).
+// El resto son borradores (nombres tentativos) que se confirman al revisar el video.
+const AULAS_DEFAULT = [
+  // ─── CONFIRMADA ──────────────────────────────────────────────────────────
+  { n: 1, nombre: "Apertura del Portal 441", dur: 47, tipo: "ACT",
+    desc: "Activación inicial del código sagrado. Anclaje de la frecuencia 441 en el campo áurico y alineación con la Fuente Mahatma.",
+    tags: ["código 441", "apertura", "anclaje"], viva: true, coleccion: COL_FM,
+    vimeo: "https://vimeo.com/1195208281", borrador: false },
+
+  // ─── CON VIDEO CARGADO ────────────────────────────────────────────────────
+  { n: 2, nombre: "Activación de Abundancia Cuántica", dur: 38, tipo: "ACT", desc: "Comandos para abrir los canales de manifestación material y espiritual. Disolución de votos de pobreza ancestrales.", tags: ["abundancia", "manifestación", "votos"], viva: true, coleccion: COL_FM, vimeo: "https://vimeo.com/1195209758", borrador: true },
+  { n: 3, nombre: "Meditación de la Flor de la Vida", dur: 52, tipo: "MED", desc: "Inducción guiada a través de la geometría sagrada. Activación de los 13 círculos en el cuerpo de luz.", tags: ["geometría sagrada", "merkaba", "luz"], viva: true, coleccion: COL_FM, vimeo: "https://vimeo.com/1195220506", borrador: true },
+  { n: 4, nombre: "Sanación del Linaje Materno", dur: 61, tipo: "REP", desc: "Reprogramación del ADN ancestral por línea femenina. Liberación de patrones heredados de siete generaciones.", tags: ["linaje", "ADN", "sanación"], viva: true, coleccion: COL_FM, vimeo: "https://vimeo.com/1195224860", borrador: true },
+  { n: 5, nombre: "Activación Energética de Luz Dorada", dur: 44, tipo: "ACT", desc: "Descarga de luz dorada crística por la corona. Sellado del corazón y apertura del canal cuántico.", tags: ["luz dorada", "corona", "crístico"], viva: true, coleccion: COL_FM, vimeo: "https://vimeo.com/1195228837", borrador: true },
+  { n: 6, nombre: "Comando de Disolución de Contratos", dur: 33, tipo: "CMD", desc: "Decretos para anular contratos kármicos, acuerdos del alma obsoletos y juramentos de otras vidas.", tags: ["contratos", "karma", "decretos"], viva: true, coleccion: COL_FM, vimeo: "https://vimeo.com/1195230612", borrador: true },
+  { n: 7, nombre: "Reprogramación Cuántica del Yo", dur: 56, tipo: "REP", desc: "Comandos para reprogramar creencias limitantes a nivel celular. Activación del potencial multidimensional.", tags: ["creencias", "ADN", "multidimensional"], viva: true, coleccion: COL_FM, vimeo: "https://vimeo.com/1195233159", borrador: true },
+  { n: 8, nombre: "Activación de Manifestación Inmediata", dur: 41, tipo: "ACT", desc: "Apertura del campo de coherencia para manifestación acelerada. Sintonía con la frecuencia 441Hz.", tags: ["manifestación", "coherencia", "441Hz"], viva: true, coleccion: COL_FM, vimeo: "https://vimeo.com/1195235167", borrador: true },
+  { n: 9, nombre: "Meditación del Loto Esmeralda", dur: 49, tipo: "MED", desc: "Visualización guiada del corazón verdadero. Florecimiento del chakra cardíaco en el plano causal.", tags: ["loto", "corazón", "verde esmeralda"], viva: true, coleccion: COL_FM, vimeo: "https://vimeo.com/1195237990", borrador: true },
+  { n: 10, nombre: "Comandos del Yo Soy Crístico", dur: 37, tipo: "CMD", desc: "Decretos de la Presencia Yo Soy. Anclaje de la consciencia búdica y la chispa divina interna.", tags: ["yo soy", "presencia", "crístico"], viva: true, coleccion: COL_FM, vimeo: "https://vimeo.com/1195243315", borrador: true },
+  { n: 11, nombre: "Reprogramación del Tiempo Lineal", dur: 58, tipo: "REP", desc: "Liberación de la matriz temporal 3D. Acceso al tiempo cuántico y la simultaneidad de todas las vidas.", tags: ["tiempo", "matriz", "cuántico"], viva: true, coleccion: COL_FM, vimeo: "https://vimeo.com/1195244481", borrador: true },
+  { n: 12, nombre: "Activación de la Tríada Sagrada", dur: 52, tipo: "ACT", desc: "Sintonía con Padre-Madre-Hijo en el plano interno. Estabilización del triángulo dorado en el chakra del corazón.", tags: ["tríada", "trinidad", "corazón"], viva: true, coleccion: COL_FM, vimeo: "https://vimeo.com/1195246890", borrador: true },
+  { n: 13, nombre: "Meditación de las Palomas de Luz", dur: 46, tipo: "MED", desc: "Encuentro con los mensajeros del Espíritu Santo. Recepción de códigos de paz y unificación cuántica.", tags: ["paloma", "espíritu", "unificación"], viva: true, coleccion: COL_FM, vimeo: "https://vimeo.com/1195248675", borrador: true },
+  { n: 14, nombre: "Sellado del Campo Áurico 441", dur: 39, tipo: "CMD", desc: "Comandos finales para sellar el trabajo de la primera fase. Blindaje energético y anclaje definitivo.", tags: ["sellado", "campo áurico", "protección"], viva: true, coleccion: COL_FM, vimeo: "https://vimeo.com/1195187501", borrador: true },
+
+  // ─── PRÓXIMAMENTE (también borrador) ─────────────────────────────────────
+  { n: 15, nombre: "Portal de los Kumaras", tipo: "ACT", viva: false, coleccion: COL_FM, borrador: true },
+  { n: 16, nombre: "Activación de la Llama Violeta", tipo: "ACT", viva: false, coleccion: COL_FM, borrador: true },
+  { n: 17, nombre: "Reprogramación del Linaje Paterno", tipo: "REP", viva: false, coleccion: COL_FM, borrador: true },
+  { n: 18, nombre: "Meditación de las Cascadas Cósmicas", tipo: "MED", viva: false, coleccion: COL_FM, borrador: true },
+  { n: 19, nombre: "Comandos de Liberación Planetaria", tipo: "CMD", viva: false, coleccion: COL_FM, borrador: true },
+  { n: 20, nombre: "Activación del ADN de 12 Hebras", tipo: "ACT", viva: false, coleccion: COL_FM, borrador: true },
+  { n: 21, nombre: "Sintonía con la Madre Tierra", tipo: "MED", viva: false, coleccion: COL_FM, borrador: true },
+  { n: 22, nombre: "Reprogramación de la Escasez", tipo: "REP", viva: false, coleccion: COL_FM, borrador: true },
+  { n: 23, nombre: "Comando del Sello Solar", tipo: "CMD", viva: false, coleccion: COL_FM, borrador: true },
+  { n: 24, nombre: "Activación de la Glándula Pineal", tipo: "ACT", viva: false, coleccion: COL_FM, borrador: true },
+  { n: 25, nombre: "Meditación del Río de Luz", tipo: "MED", viva: false, coleccion: COL_FM, borrador: true },
+  { n: 26, nombre: "Reprogramación del Miedo Ancestral", tipo: "REP", viva: false, coleccion: COL_FM, borrador: true },
+  { n: 27, nombre: "Comando de Unificación Cuántica", tipo: "CMD", viva: false, coleccion: COL_FM, borrador: true },
+  { n: 28, nombre: "Activación de los Maestros Ascendidos", tipo: "ACT", viva: false, coleccion: COL_FM, borrador: true },
+  { n: 29, nombre: "Meditación del Cristal Interno", tipo: "MED", viva: false, coleccion: COL_FM, borrador: true },
+  { n: 30, nombre: "Sellado del Ego Inferior", tipo: "CMD", viva: false, coleccion: COL_FM, borrador: true },
+  { n: 31, nombre: "Reprogramación de Vidas Paralelas", tipo: "REP", viva: false, coleccion: COL_FM, borrador: true },
+  { n: 32, nombre: "Activación del Cuerpo de Luz", tipo: "ACT", viva: false, coleccion: COL_FM, borrador: true },
+  { n: 33, nombre: "Meditación del Maestro Interior", tipo: "MED", viva: false, coleccion: COL_FM, borrador: true },
+  { n: 34, nombre: "Comando de Soberanía Energética", tipo: "CMD", viva: false, coleccion: COL_FM, borrador: true },
+  { n: 35, nombre: "Reprogramación de la Identidad", tipo: "REP", viva: false, coleccion: COL_FM, borrador: true },
+  { n: 36, nombre: "Activación de la Consciencia Crística", tipo: "ACT", viva: false, coleccion: COL_FM, borrador: true },
+  { n: 37, nombre: "Meditación del Vacío Fértil", tipo: "MED", viva: false, coleccion: COL_FM, borrador: true },
+  { n: 38, nombre: "Comando de Servicio Planetario", tipo: "CMD", viva: false, coleccion: COL_FM, borrador: true },
+  { n: 39, nombre: "Reprogramación de la Misión de Alma", tipo: "REP", viva: false, coleccion: COL_FM, borrador: true },
+  { n: 40, nombre: "Activación del Sol Central", tipo: "ACT", viva: false, coleccion: COL_FM, borrador: true },
+  { n: 41, nombre: "Cierre — Ascensión Mahatma 441", tipo: "ACT", viva: false, coleccion: COL_FM, borrador: true },
+];
+
+// =============================================================================
+// PERSISTENCIA — almacena la lista COMPLETA en localStorage para que se puedan
+// agregar/borrar aulas (no solo editar las existentes).
+// =============================================================================
+const FM_STORAGE_KEY = "fm441-aulas-v3";
+
+function loadAulas() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(FM_STORAGE_KEY));
+    if (Array.isArray(stored) && stored.length > 0) return stored;
+  } catch {}
+  return AULAS_DEFAULT;
+}
+function saveAulas(list) {
+  localStorage.setItem(FM_STORAGE_KEY, JSON.stringify(list));
+  window.AULAS = list;
+  window.dispatchEvent(new Event("fm-aulas-updated"));
+}
+
+window.AULAS_DEFAULT = AULAS_DEFAULT;
+window.TIPOS = TIPOS;
+window.COLECCIONES_DEFAULT = [COL_FM, COL_COMP];
+window.AULAS = loadAulas();
+
+window.saveAulaPatch = function (n, patch) {
+  const next = window.AULAS.map(a => a.n === n ? { ...a, ...patch } : a);
+  saveAulas(next);
+};
+
+window.addAula = function (preset = {}) {
+  const maxN = window.AULAS.reduce((m, a) => Math.max(m, a.n), 0);
+  const nueva = {
+    n: maxN + 1,
+    nombre: "Nueva aula",
+    tipo: "ACT",
+    viva: false,
+    coleccion: COL_FM,
+    borrador: true,
+    desc: "",
+    tags: [],
+    ...preset,
+  };
+  saveAulas([...window.AULAS, nueva]);
+  return nueva.n;
+};
+
+window.deleteAula = function (n) {
+  saveAulas(window.AULAS.filter(a => a.n !== n));
+};
+
+window.resetAulaOverrides = function (n) {
+  if (n == null) {
+    localStorage.removeItem(FM_STORAGE_KEY);
+    window.AULAS = AULAS_DEFAULT.map(a => ({ ...a }));
+    window.dispatchEvent(new Event("fm-aulas-updated"));
+  } else {
+    const original = AULAS_DEFAULT.find(a => a.n === n);
+    if (original) {
+      const next = window.AULAS.map(a => a.n === n ? { ...original } : a);
+      saveAulas(next);
+    }
+  }
+};
+
+window.exportAulasJSON = function () {
+  return JSON.stringify(window.AULAS, null, 2);
+};
+
+window.importAulasJSON = function (json) {
+  const arr = JSON.parse(json);
+  if (!Array.isArray(arr)) throw new Error("El JSON debe ser un array de aulas");
+  saveAulas(arr);
+};
+
+// Helpers Vimeo — acepta múltiples formatos:
+//   https://vimeo.com/1234567890
+//   https://vimeo.com/1234567890/c42514c984          ← video privado (token en path)
+//   https://vimeo.com/1234567890?h=abc123             ← video privado (token en query)
+//   https://vimeo.com/1234567890/c42514c984?share=copy&fl=sv  ← con params extras
+//   https://player.vimeo.com/video/1234567890
+window.getVimeoId = function (url) {
+  if (!url) return null;
+  const m = String(url).match(/vimeo\.com\/(?:video\/|channels\/[^/]+\/|groups\/[^/]+\/videos\/)?(\d+)/);
+  return m ? m[1] : null;
+};
+window.getVimeoHash = function (url) {
+  if (!url) return null;
+  const s = String(url);
+  // formato path-style: vimeo.com/123/abc123def
+  let m = s.match(/vimeo\.com\/\d+\/([a-zA-Z0-9]+)/);
+  if (m) return m[1];
+  // formato query-style: ?h=abc123
+  m = s.match(/[?&]h=([a-zA-Z0-9]+)/);
+  return m ? m[1] : null;
+};
+window.getVimeoEmbed = function (url) {
+  const id = window.getVimeoId(url);
+  if (!id) return null;
+  const h = window.getVimeoHash(url);
+  const params = ["title=0", "byline=0", "portrait=0", "dnt=1", "cc=1", "texttrack=es"];
+  if (h) params.unshift(`h=${h}`);
+  return `https://player.vimeo.com/video/${id}?${params.join("&")}`;
+};

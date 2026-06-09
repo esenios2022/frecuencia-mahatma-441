@@ -1,0 +1,142 @@
+# Despliegue en Vercel — Frecuencia Mahatma 441
+
+Guía paso a paso para que la plataforma esté online en menos de 15 minutos.
+
+---
+
+## 📦 Lo que vas a necesitar
+
+1. **Cuenta de GitHub** (ya tenés)
+2. **Cuenta de Vercel** — gratis, te la creás en 1 minuto: 👉 https://vercel.com/signup
+3. **API Key de Gemini** — ya la tenemos (la subimos como variable secreta en Vercel)
+4. **Git instalado** en tu compu (opcional — Vercel también permite subir por web)
+
+---
+
+## 🚀 Pasos para subir el proyecto
+
+### Paso 1 — Crear el repo en GitHub
+
+1. Andá a https://github.com/new
+2. Nombre: `frecuencia-mahatma-441`
+3. Marcalo **Public** o **Private** (cualquiera funciona con Vercel)
+4. **NO** crees README, .gitignore ni licencia (los vamos a subir nosotros)
+5. Click "Create repository"
+6. GitHub te muestra una pantalla con instrucciones — **dejala abierta**
+
+### Paso 2 — Subir el código
+
+Tenés 2 opciones:
+
+**Opción A — Por web (más fácil)**
+1. Descargá el proyecto entero como `.zip` desde Claude (pedimelo y te lo armo)
+2. Descomprimilo en tu compu
+3. En GitHub → tu repo → "uploading an existing file"
+4. Drag & drop **todos** los archivos del proyecto
+5. Click "Commit changes"
+
+**Opción B — Por terminal (más rápido para futuras actualizaciones)**
+```bash
+cd /ruta/al/proyecto
+git init
+git add .
+git commit -m "Primer deploy"
+git remote add origin https://github.com/TU_USUARIO/frecuencia-mahatma-441.git
+git branch -M main
+git push -u origin main
+```
+
+### Paso 3 — Conectar Vercel
+
+1. Andá a https://vercel.com/new
+2. "Import Git Repository" → seleccioná **frecuencia-mahatma-441**
+3. En la pantalla de configuración:
+   - **Framework Preset:** "Other" (no es Next.js ni Vite)
+   - **Root Directory:** dejá en blanco
+   - **Build Command:** dejá vacío
+   - **Output Directory:** dejá vacío
+
+### Paso 4 — Agregar la API Key de Gemini ⚠️ CRÍTICO
+
+Antes de hacer click en "Deploy":
+
+1. Abrí "Environment Variables" (en la misma pantalla)
+2. Agregá:
+   - **Name:** `GEMINI_API_KEY`
+   - **Value:** `AIzaSy...` (la key actual de Gemini)
+   - **Environment:** Production, Preview, Development (marcá los 3)
+3. Click "Add"
+
+### Paso 5 — Deploy
+
+1. Click "Deploy"
+2. Esperá ~30 segundos
+3. Vercel te muestra "Congratulations 🎉" con la URL: `https://frecuencia-mahatma-441.vercel.app`
+4. Click "Visit" para ver tu plataforma online
+
+---
+
+## ✅ Verificación post-deploy
+
+Una vez online, probá esto para confirmar que todo funciona:
+
+1. ✓ Abrí el sitio y verificá que cargue
+2. ✓ Click en "Entrar al aula" → debería abrir el video
+3. ✓ Andá al buscador IA → escribí "de qué se trata el aula 1"
+4. ✓ La respuesta narrada debería aparecer en 5-10 segundos (eso confirma que `/api/ia` está hablando con Gemini)
+
+Si la respuesta narrada **no aparece** o sale un error, hay tres causas posibles:
+
+- **"GEMINI_API_KEY no configurada"** → volvé a Vercel → Settings → Environment Variables y confirmá que la key esté ahí. Después clickeá "Redeploy" en la pestaña Deployments.
+- **"Gemini respondió 429"** → pasaste el límite gratis (1500 req/día). Esperá 24h o subí al plan pago.
+- **"Gemini respondió 403"** → la key es inválida o le falta habilitar el servicio Generative Language en Google Cloud.
+
+---
+
+## 🌐 Dominio propio (opcional)
+
+Si querés `frecuenciamahatma441.com` en vez del `.vercel.app`:
+
+1. Comprá el dominio en Namecheap / GoDaddy (~$10/año)
+2. En Vercel → tu proyecto → Settings → Domains → Add → escribí tu dominio
+3. Vercel te da los DNS records que tenés que pegar en tu proveedor de dominio
+4. ~10 minutos después funciona
+
+---
+
+## 🔄 Actualizar la plataforma
+
+Cuando hagamos cambios en el código (más aulas, nuevas funciones, etc.):
+
+**Si subiste por web (Opción A):**
+- Volvé a GitHub → tu repo → "Add file" → "Upload files" → subí los archivos nuevos → commit
+- Vercel detecta el cambio y redeploya automáticamente en ~30 segundos
+
+**Si subiste por terminal (Opción B):**
+```bash
+git add .
+git commit -m "Lo que cambió"
+git push
+```
+Vercel redeploya solo.
+
+---
+
+## 🆘 Si algo se rompe
+
+1. Vercel → tu proyecto → Logs → buscá errores rojos
+2. Mandame screenshot acá y te ayudo a resolverlo
+
+---
+
+## 💰 Resumen de costos
+
+| Concepto | Costo / mes |
+|---|---|
+| Vercel hosting | $0 |
+| Vercel SSL + CDN | $0 |
+| Subdominio .vercel.app | $0 |
+| Gemini API (uso normal) | $0 |
+| **Total** | **$0** |
+
+(Solo pagás si en algún momento querés tu dominio propio: ~$10/año)

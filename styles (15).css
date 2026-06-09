@@ -1,0 +1,301 @@
+/* eslint-disable */
+const { useState: useS2, useEffect: useE2, useRef: useR2, useMemo: useM2 } = React;
+
+// =============================================================================
+// BUSCADOR IA — sección principal con respuestas inteligentes
+// =============================================================================
+function BuscadorIA({ inputRef, useLiveAI, geminiKey }) {
+  const [q, setQ] = useS2("");
+  const [loading, setLoading] = useS2(false);
+  const [resp, setResp] = useS2(null); // { pretext, results: [...] }
+  const [error, setError] = useS2(null);
+  const [historial, setHistorial] = useS2([]); // últimas consultas
+
+  const sugerencias = [
+  "¿Dónde está la reprogramación?",
+  "Dame todas las activaciones",
+  "Trabajo de abundancia",
+  "¿Qué hay en aula 7?",
+  "Linaje materno",
+  "Comandos del yo soy"];
+
+
+  async function buscar(query) {
+    const text = query ?? q;
+    if (!text.trim()) return;
+    setLoading(true);
+    setError(null);
+    setResp(null);
+
+    await new Promise((r) => setTimeout(r, 350));
+
+    try {
+      let r;
+      if (useLiveAI && geminiKey) {
+        window.GEMINI.key = geminiKey;
+        const mini = window.AULAS.map((a) => ({
+          n: a.n, nombre: a.nombre, dur: a.dur || null, tipo: a.tipo,
+          desc: a.desc || null, tags: a.tags || [], viva: a.viva
+        }));
+        const raw = await window.GEMINI.ask(text, mini);
+        r = {
+          pretext: raw.pretext || "Resultados del agente:",
+          results: (raw.results || []).map((x) => {
+            const aula = window.AULAS.find((a) => a.n === x.n);
+            return aula ? { aula, segmento: x.segmento, tag: x.tag, resumenIA: x.resumen } : null;
+          }).filter(Boolean)
+        };
+      } else {
+        r = window.consultarIA(text);
+      }
+
+      // ✨ Generar narrativa IA cuando hay 1-3 resultados y la pregunta lo amerita
+      const debeNarrar = r?.results?.length > 0 && r.results.length <= 3;
+      if (debeNarrar) {
+        r.narrativaLoading = true;
+      }
+
+      // Mostrar resultados YA mismo (sin esperar a la narrativa)
+      setResp(r);
+      setLoading(false);
+
+      // Generar narrativa en segundo plano
+      if (debeNarrar) {
+        const contextoAulas = r.results.map((res) => ({
+          n: res.aula.n,
+          nombre: res.aula.nombre,
+          tipo: window.TIPOS[res.aula.tipo]?.label,
+          dur: res.aula.dur,
+          desc: res.aula.desc,
+          tags: res.aula.tags,
+          tieneTranscripcion: !!(res.aula.transcripcion && res.aula.transcripcion.trim().length > 50),
+          transcripcion: res.aula.transcripcion ? res.aula.transcripcion.slice(0, 14000) : null
+        }));
+
+        const algunaConTranscripcion = contextoAulas.some((a) => a.tieneTranscripcion);
+
+        const prompt = `Sos el agente IA de la plataforma "Frecuencia Mahatma 441", una biblioteca espiritual.
+Respondé la pregunta del usuario en español, en tono cálido y claro, en 2-4 párrafos.
+
+Pregunta: "${text}"
+
+Aulas relevantes (con metadata${algunaConTranscripcion ? " y TRANSCRIPCIÓN REAL del video cuando está disponible" : ""}):
+${JSON.stringify(contextoAulas, null, 2)}
+
+Reglas:
+${algunaConTranscripcion ?
+        "- Tenés transcripción real del video. Citá lo que se dice EN EL VIDEO con timestamps cuando aplique.\n- No inventes contenido que no esté en la transcripción." :
+        "- NINGUNA de estas aulas tiene transcripción cargada. Empezá tu respuesta avisando: \"Te respondo desde la descripción del aula (no tengo todavía la transcripción del video).\""}
+- Mencioná el número de aula al referirte ("La Aula 08...")
+- Si la pregunta es "de qué se trata" o similar, explicá qué se trabaja, qué se recibe y para quién es
+- Texto plano, sin markdown ni headers, máximo 4 párrafos`;
+
+
+        try {
+          const narrativa = await window.askIA(prompt);
+          setResp((prev) => prev ? {
+            ...prev,
+            narrativa: (narrativa || "").trim(),
+            narrativaLoading: false,
+            narrativaSinTranscripcion: !algunaConTranscripcion
+          } : prev);
+        } catch (e) {
+          setResp((prev) => prev ? {
+            ...prev,
+            narrativaLoading: false,
+            narrativaError: e.message || "No pude generar la respuesta narrada"
+          } : prev);
+        }
+      }
+
+      setHistorial((h) => [text, ...h.filter((x) => x !== text)].slice(0, 5));
+    } catch (e) {
+      setError(e.message || "Error consultando al agente");
+      setLoading(false);
+    }
+  }
+
+  return (
+    <section id="agente-ia" className="fm-search">
+      <div className="fm-search-wrap">
+        <div className="fm-search-head">
+          <div className="fm-search-eyebrow">
+            <TriadaSVG size={18} />
+            <span>AGENTE IA ·MAHATMA</span>
+            <TriadaSVG size={18} />
+          </div>
+          <h2 className="fm-search-title">Habla con tu biblioteca</h2>
+          <p className="fm-search-desc">
+            Pregunta en lenguaje natural — el agente busca dentro de las 41 aulas,
+            te devuelve los <strong>minutos exactos</strong> y un resumen descargable en PDF.
+          </p>
+        </div>
+
+        <div className="fm-search-box">
+          <div className="fm-search-input-row">
+            <div className="fm-search-input">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4-4" strokeLinecap="round" /></svg>
+              <input
+                ref={inputRef}
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                onKeyDown={(e) => {if (e.key === "Enter") buscar();}}
+                placeholder="Ej: ¿Dónde está la reprogramación cuántica?" />
+              
+              {q && <button className="fm-search-clear" onClick={() => {setQ("");setResp(null);}}>×</button>}
+            </div>
+            <button className="fm-btn fm-btn-primary fm-btn-search" onClick={() => buscar()} disabled={loading}>
+              {loading ? "Buscando..." : "Preguntar"}
+            </button>
+          </div>
+
+          <div className="fm-search-suggest">
+            <span className="fm-search-suggest-label">Prueba con:</span>
+            {sugerencias.map((s) =>
+            <button key={s} className="fm-suggest-chip" onClick={() => {setQ(s);buscar(s);}}>{s}</button>
+            )}
+          </div>
+
+          {useLiveAI &&
+          <div className="fm-ai-live-badge">
+              <span className="fm-pulse"></span>
+              GEMINI EN VIVO {geminiKey ? "· conectado" : "· sin key configurada"}
+            </div>
+          }
+        </div>
+
+        {loading && <ThinkingState />}
+
+        {error &&
+        <div className="fm-error">
+            <strong>⚠ {error}</strong> — volviendo al modo local.
+          </div>
+        }
+
+        {resp && !loading && <Respuesta resp={resp} query={q} />}
+      </div>
+    </section>);
+
+}
+
+function ThinkingState() {
+  return (
+    <div className="fm-thinking">
+      <div className="fm-thinking-orb">
+        <div className="fm-thinking-pulse"></div>
+        <FlorDeLaVida size={64} stroke="#2FA573" strokeWidth={0.8} opacity={0.7} />
+      </div>
+      <div className="fm-thinking-text">
+        El agente está consultando las 41 aulas<span className="fm-dots"><span>.</span><span>.</span><span>.</span></span>
+      </div>
+    </div>);
+
+}
+
+function Respuesta({ resp, query }) {
+  return (
+    <div className="fm-resp">
+      <div className="fm-resp-head">
+        <div className="fm-resp-agent">
+          <FlorDeLaVida size={28} stroke="#2FA573" strokeWidth={1} />
+          <div>
+            <div className="fm-resp-agent-name">Agente Mahatma</div>
+            <div className="fm-resp-agent-status">
+              {resp.narrativa ? "Respuesta generada con IA" : "Respuesta basada en metadata de tus aulas"}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Narrativa IA (respuesta real) */}
+      {resp.narrativaLoading &&
+      <div className="fm-resp-narrativa fm-resp-narrativa-loading">
+          <div className="fm-thinking-orb" style={{ width: 36, height: 36, flexShrink: 0 }}>
+            <div className="fm-thinking-pulse"></div>
+            <FlorDeLaVida size={36} stroke="#2FA573" strokeWidth={0.8} opacity={0.7} />
+          </div>
+          <div>
+            <strong>El agente está leyendo las aulas...</strong>
+            <div style={{ fontSize: 12, color: "var(--fm-text-dim)", marginTop: 4, fontFamily: "var(--fm-mono-font)", letterSpacing: "0.05em" }}>
+              Procesando transcripción y armando respuesta
+            </div>
+          </div>
+        </div>
+      }
+
+      {resp.narrativaError &&
+      <div className="fm-resp-narrativa">
+          <div className="fm-resp-narrativa-warn">
+            ⚠️ <strong>El agente IA no pudo armar la respuesta narrada:</strong> {resp.narrativaError}.
+            Te dejo abajo las fichas de las aulas relevantes.
+          </div>
+        </div>
+      }
+
+      {resp.narrativa &&
+      <div className="fm-resp-narrativa">
+          {resp.narrativaSinTranscripcion &&
+        <div className="fm-resp-narrativa-warn">
+              ⚠️ Respuesta basada en la <strong>descripción</strong> del aula. Para análisis precisos del contenido del video, cargá la transcripción en el panel <strong>Admin</strong>.
+            </div>
+        }
+          {resp.narrativa.split(/\n\n+/).map((p, i) =>
+        <p key={i}>{p}</p>
+        )}
+        </div>
+      }
+
+      <div className="fm-resp-pretext">{resp.pretext}</div>
+      {resp.results.length > 0 &&
+      <div className="fm-resp-list">
+          {resp.results.map((r, i) => <ResultadoCard key={r.aula.n + "-" + i} r={r} />)}
+        </div>
+      }
+      {resp.results.length === 0 &&
+      <div className="fm-resp-empty">
+          <em>Reformula tu pregunta o explora la biblioteca completa abajo ↓</em>
+        </div>
+      }
+    </div>);
+
+}
+
+function ResultadoCard({ r }) {
+  const { aula, segmento, tag, resumenLargo, resumenIA } = r;
+  const tipo = window.TIPOS[aula.tipo];
+  return (
+    <div className={`fm-result ${aula.viva ? "" : "is-pendiente"}`}>
+      <div className="fm-result-left">
+        <div className="fm-result-num">
+          <span className="fm-result-num-label">AULA</span>
+          <span className="fm-result-num-val">{String(aula.n).padStart(2, "0")}</span>
+        </div>
+      </div>
+      <div className="fm-result-body">
+        <div className="fm-result-tags">
+          <span className="fm-tag fm-tag-gold">{tag}</span>
+          {aula.viva && <span className="fm-tag fm-tag-emerald">{tipo.label}</span>}
+          {aula.viva && <span className="fm-tag fm-tag-mono">{segmento}</span>}
+        </div>
+        <h4 className="fm-result-title">{aula.nombre}</h4>
+        <p className="fm-result-desc">
+          {resumenIA || aula.desc || (aula.viva ? "Aula viva — abre la ficha para ver detalles." : "Esta aula todavía no fue publicada. Será liberada en próximos ciclos.")}
+        </p>
+        {aula.viva &&
+        <div className="fm-result-actions">
+            <button className="fm-btn fm-btn-primary fm-btn-sm" onClick={() => window.openAula?.(aula.n)}>
+              Ver aula <span className="fm-btn-arrow">→</span>
+            </button>
+            <button className="fm-btn fm-btn-ghost fm-btn-sm" onClick={() => window.descargarResumenPDF?.(aula)}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              Descargar resumen PDF
+            </button>
+            <span className="fm-result-dur">· {aula.dur} min</span>
+          </div>
+        }
+      </div>
+    </div>);
+
+}
+
+Object.assign(window, { BuscadorIA });

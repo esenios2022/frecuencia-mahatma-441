@@ -283,7 +283,7 @@ function AulaCard({ aula }) {
         {aula.viva && <MaterialesEnCard aula={aula} />}
         <div className="fm-card-foot">
           {aula.viva ?
-          <button className="fm-btn fm-btn-primary fm-btn-full" onClick={() => window.openAula?.(aula.n)}>
+          <button className="fm-btn fm-btn-primary fm-btn-full" onClick={() => { window.guardarAccesoAula?.(aula.n, aula.nombre, aula.tipo); window.openAula?.(aula.n); }}>
               Entrar al aula <span className="fm-btn-arrow">→</span>
             </button> :
 
