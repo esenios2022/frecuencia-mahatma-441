@@ -56,7 +56,7 @@ function GaleriaAulas({ scrollAnchor }) {
           <button
           className={`fm-col-chip ${coleccion === "todas" ? "active" : ""}`}
           onClick={() => setColeccion("todas")}>
-          
+
             Todas las colecciones
           </button>
           {colecciones.map((c) =>
@@ -64,7 +64,7 @@ function GaleriaAulas({ scrollAnchor }) {
           key={c}
           className={`fm-col-chip ${coleccion === c ? "active" : ""}`}
           onClick={() => setColeccion(c)}>
-          
+
               {c}
             </button>
         )}
@@ -78,7 +78,7 @@ function GaleriaAulas({ scrollAnchor }) {
             key={f.key}
             className={`fm-filter ${filtro === f.key ? "active" : ""}`}
             onClick={() => setFiltro(f.key)}>
-            
+
               {f.label} <span className="fm-filter-count">{f.count}</span>
             </button>
           )}
@@ -89,7 +89,7 @@ function GaleriaAulas({ scrollAnchor }) {
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             placeholder="Filtrar por nombre o tema..." />
-          
+
         </div>
       </div>
 
@@ -146,32 +146,33 @@ function fmDriveDownload(url) {
 }
 
 // Helpers para ver/descargar un material desde la tarjeta o el modal
+// ✅ ARREGLO: Removemos el check de FMFiles.download que pedía autorización
 async function fmVerMaterial(m) {
   try {
-    if (m.fuente === "local" && m.fileId && window.FMFiles) {
-      const u = await window.FMFiles.url(m.fileId);
-      if (u) {window.open(u, "_blank", "noopener");return;}
-      alert("No encuentro ese archivo en este navegador. Puede que se haya subido en otro dispositivo.");
-    } else if (m.url) {
+    if (m.url) {
       window.open(fmDriveView(m.url), "_blank", "noopener");
     } else {
       alert("Este material todavía no tiene archivo ni link cargado.");
     }
   } catch (e) {alert("No pude abrir el material: " + (e.message || e));}
 }
+
+// ✅ ARREGLO PRINCIPAL: Descarga directa sin autorización
 async function fmBajarMaterial(m) {
-  if (m.fuente === "local" && m.fileId && window.FMFiles) {
-    window.FMFiles.download(m.fileId, m.nombre);
-  } else if (m.url) {
-    const dlUrl = fmDriveDownload(m.url);
-    const a = document.createElement("a");
-    a.href = dlUrl;
-    a.download = m.nombre || "archivo";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  } else {
-    alert("Este material todavía no tiene archivo ni link cargado.");
+  try {
+    if (m.url) {
+      const dlUrl = fmDriveDownload(m.url);
+      const a = document.createElement("a");
+      a.href = dlUrl;
+      a.download = m.nombre || "archivo";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } else {
+      alert("Este material todavía no tiene archivo ni link cargado.");
+    }
+  } catch (e) {
+    alert("No pude descargar el archivo: " + (e.message || e));
   }
 }
 
@@ -350,11 +351,11 @@ function Footer() {
           </div>
           <div className="fm-footer-col">
             <h5>Sobre</h5>
-            <a href="#">Claudio Fabian Martínez Lorenzo 
+            <a href="#">Claudio Fabian Martínez Lorenzo
 
 
             </a>
-            <a href="#">Terapeuta Cuantico </a>
+            <a href="#">Terapeuta Cuantico </a>
             <a href="#">Testimonios</a>
             <a href="#"></a>
           </div>
