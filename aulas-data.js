@@ -114,6 +114,11 @@ const AULAS_DEFAULT = [
   { n: 46, nombre: "", tipo: "ACT", viva: false, coleccion: COL_FM },
   { n: 47, nombre: "", tipo: "ACT", viva: false, coleccion: COL_FM },
   { n: 48, nombre: "", tipo: "ACT", viva: false, coleccion: COL_FM },
+
+  // ─── ACTIVACIONES COMPLEMENTARIAS ────────────────────────────────────────
+  { n: 49, nombre: "Canto de Ballenas y Delfines", dur: 60, tipo: "MED", viva: true, coleccion: COL_COMP,
+    audioUrl: "https://drive.google.com/file/d/1hx3wNRWdxsONIgmPx1Bq2jRClCRSYoRQ/view?usp=sharing",
+    audioName: "Canto de Ballenas y Delfines" },
 ];
 
 // =============================================================================
