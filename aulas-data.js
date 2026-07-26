@@ -125,7 +125,7 @@ const AULAS_DEFAULT = [
 // PERSISTENCIA — almacena la lista COMPLETA en localStorage para que se puedan
 // agregar/borrar aulas (no solo editar las existentes).
 // =============================================================================
-const FM_STORAGE_KEY = "fm441-aulas-v4";
+const FM_STORAGE_KEY = "fm441-aulas-v5";
 
 // =============================================================================
 // TESTIMONIOS — Experiencias de participantes
